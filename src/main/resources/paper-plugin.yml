@@ -1,0 +1,8 @@
+name: MoreFoWorld
+version: '${version}'
+main: me.hsgamer.morefoworld.MoreFoWorld
+api-version: 1.19
+load: STARTUP
+authors: [HSGamer]
+description: A world registry for Folia
+folia-supported: true
