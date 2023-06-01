@@ -27,6 +27,7 @@ dependencies {
     implementation "me.hsgamer:hscore-bukkit-baseplugin:$core"
     implementation "me.hsgamer:hscore-bukkit-config:$core"
     implementation "me.hsgamer:hscore-bukkit-utils:$core"
+    implementation "me.hsgamer:hscore-bukkit-command-sub:$core"
     implementation "me.hsgamer:hscore-config-proxy:$core"
     implementation "me.hsgamer:hscore-common:$core"
 }
