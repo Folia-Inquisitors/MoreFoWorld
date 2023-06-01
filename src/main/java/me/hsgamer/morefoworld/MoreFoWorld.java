@@ -1,37 +1,33 @@
 package me.hsgamer.morefoworld;
 
 import io.papermc.paper.event.player.AsyncChatEvent;
+import me.hsgamer.hscore.bukkit.baseplugin.BasePlugin;
+import me.hsgamer.hscore.bukkit.config.BukkitConfig;
+import me.hsgamer.hscore.config.proxy.ConfigGenerator;
+import me.hsgamer.morefoworld.config.MainConfig;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
-import org.bukkit.craftbukkit.v1_19_R3.CraftWorld;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
-import org.bukkit.plugin.java.JavaPlugin;
-
-import java.util.ArrayList;
-import java.util.List;
 
 import static java.util.logging.Level.WARNING;
 
-public final class MoreFoWorld extends JavaPlugin implements Listener {
-    private final List<CraftWorld> worlds = new ArrayList<>();
+public final class MoreFoWorld extends BasePlugin {
+    private final MainConfig mainConfig = ConfigGenerator.newInstance(MainConfig.class, new BukkitConfig(this));
 
     @Override
-    public void onLoad() {
-        WorldUtil.FeedbackWorld feedbackWorld = WorldUtil.addWorld(WorldCreator.name("test"));
-        getLogger().info("World: " + feedbackWorld.world);
-        getLogger().info("Feedback: " + feedbackWorld.feedback);
-        if (feedbackWorld.feedback == WorldUtil.Feedback.SUCCESS) {
-            worlds.add(feedbackWorld.world);
+    public void enable() {
+        for (WorldSetting worldSetting : mainConfig.getWorldSettings()) {
+            WorldCreator worldCreator = worldSetting.toWorldCreator();
+            WorldUtil.FeedbackWorld feedbackWorld = WorldUtil.addWorld(worldCreator);
+            if (feedbackWorld.feedback == WorldUtil.Feedback.SUCCESS) {
+                getLogger().info("World " + worldSetting.getName() + " is added");
+            } else {
+                getLogger().warning("World " + worldSetting.getName() + " is not added: " + feedbackWorld.feedback);
+            }
         }
-    }
-
-    @Override
-    public void onEnable() {
-        getServer().getPluginManager().registerEvents(this, this);
     }
 
     @EventHandler

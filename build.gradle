@@ -1,10 +1,12 @@
 plugins {
     id 'java'
     id("io.papermc.paperweight.userdev") version "1.5.5"
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
 }
 
 group = 'me.hsgamer'
 version = '1.0-SNAPSHOT'
+description = 'A world registry for Folia'
 
 repositories {
     mavenCentral()
@@ -20,10 +22,23 @@ repositories {
 
 dependencies {
     paperweight.foliaDevBundle("1.19.4-R0.1-SNAPSHOT")
+
+    def core = "4.3.7"
+    implementation "me.hsgamer:hscore-bukkit-baseplugin:$core"
+    implementation "me.hsgamer:hscore-bukkit-config:$core"
+    implementation "me.hsgamer:hscore-bukkit-utils:$core"
+    implementation "me.hsgamer:hscore-config-proxy:$core"
+    implementation "me.hsgamer:hscore-common:$core"
 }
 
 assemble {
+    dependsOn shadowJar
     dependsOn reobfJar
+}
+
+shadowJar {
+    relocate("me.hsgamer.hscore", "me.hsgamer.morefoworld.core")
+    minimize()
 }
 
 def targetJavaVersion = 17
@@ -43,7 +58,12 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 processResources {
-    def props = [version: version]
+    def props = [
+            version: version,
+            name: project.name,
+            apiVersion: "1.19",
+            description: description
+    ]
     inputs.properties props
     filteringCharset 'UTF-8'
     filesMatching('paper-plugin.yml') {
