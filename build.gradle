@@ -6,7 +6,7 @@ plugins {
 
 group = 'me.hsgamer'
 version = '1.0-SNAPSHOT'
-description = 'A world registry for Folia'
+description = 'A (temporary) world manager for Folia'
 
 repositories {
     mavenCentral()
