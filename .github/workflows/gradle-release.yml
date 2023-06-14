@@ -28,6 +28,5 @@ jobs:
       with:
         fail_on_unmatched_files: true
         files: "./build/libs/MoreFoWorld*.jar"
-        generate_release_notes: true
         draft: false
         prerelease: false
