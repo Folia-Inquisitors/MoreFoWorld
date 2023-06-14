@@ -27,7 +27,7 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         fail_on_unmatched_files: true
-        files: "./build/MoreFoWorld*.jar"
+        files: "./build/libs/MoreFoWorld*.jar"
         generate_release_notes: true
         draft: false
         prerelease: false
