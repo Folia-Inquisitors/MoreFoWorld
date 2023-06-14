@@ -21,7 +21,8 @@ repositories {
 }
 
 dependencies {
-    paperweight.foliaDevBundle("1.19.4-R0.1-SNAPSHOT")
+    paperweight.paperDevBundle("1.20-R0.1-SNAPSHOT")
+//    paperweight.foliaDevBundle("1.20-R0.1-SNAPSHOT") // Didn't work
 
     def core = "4.3.7"
     implementation "me.hsgamer:hscore-bukkit-baseplugin:$core"
@@ -62,7 +63,7 @@ processResources {
     def props = [
             version: version,
             name: project.name,
-            apiVersion: "1.19",
+            apiVersion: "1.20",
             description: description
     ]
     inputs.properties props
