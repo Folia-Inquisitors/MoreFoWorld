@@ -20,10 +20,7 @@ import net.minecraft.world.Difficulty;
 import net.minecraft.world.entity.ai.village.VillageSiege;
 import net.minecraft.world.entity.npc.CatSpawner;
 import net.minecraft.world.entity.npc.WanderingTraderSpawner;
-import net.minecraft.world.level.CustomSpawner;
-import net.minecraft.world.level.GameRules;
-import net.minecraft.world.level.GameType;
-import net.minecraft.world.level.LevelSettings;
+import net.minecraft.world.level.*;
 import net.minecraft.world.level.biome.BiomeManager;
 import net.minecraft.world.level.dimension.LevelStem;
 import net.minecraft.world.level.levelgen.PatrolSpawner;
@@ -156,9 +153,10 @@ public final class WorldUtil {
 
         console.addLevel(internal);
         int loadRegionRadius = ((32) >> 4);
+        internal.randomSpawnSelection = new ChunkPos(internal.getChunkSource().randomState().sampler().findSpawnPosition());
         for (int currX = -loadRegionRadius; currX <= loadRegionRadius; ++currX) {
             for (int currZ = -loadRegionRadius; currZ <= loadRegionRadius; ++currZ) {
-                net.minecraft.world.level.ChunkPos pos = new net.minecraft.world.level.ChunkPos(currX, currZ);
+                ChunkPos pos = new ChunkPos(currX, currZ);
                 internal.chunkSource.addTicketAtLevel(
                         TicketType.UNKNOWN, pos, io.papermc.paper.chunk.system.scheduling.ChunkHolderManager.MAX_TICKET_LEVEL, pos
                 );
