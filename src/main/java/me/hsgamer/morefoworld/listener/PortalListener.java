@@ -5,6 +5,7 @@ import me.hsgamer.morefoworld.MoreFoWorld;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityPortalEvent;
+import org.bukkit.event.player.PlayerPortalEvent;
 
 public class PortalListener implements Listener {
     private final MoreFoWorld plugin;
@@ -28,8 +29,8 @@ public class PortalListener implements Listener {
     }
 
     @EventHandler
-    public void onPlayerTeleport(EntityPortalEvent event) {
-        System.out.println("Portal teleport: " + event.getEntity());
+    public void onPlayerTeleport(PlayerPortalEvent event) {
+        System.out.println("Portal teleport: " + event.getPlayer());
         System.out.println("From: " + event.getFrom());
         System.out.println("To: " + event.getTo());
     }
