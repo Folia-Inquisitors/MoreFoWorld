@@ -26,6 +26,7 @@ public class PortalListener implements Listener {
         System.out.println("Portal teleport: " + event.getEntity());
         System.out.println("From: " + event.getFrom());
         System.out.println("To: " + event.getTo());
+        System.out.println("Type: " + event.getPortalType());
     }
 
     @EventHandler
@@ -33,5 +34,6 @@ public class PortalListener implements Listener {
         System.out.println("Portal teleport: " + event.getPlayer());
         System.out.println("From: " + event.getFrom());
         System.out.println("To: " + event.getTo());
+        System.out.println("Cause: " + event.getCause());
     }
 }
