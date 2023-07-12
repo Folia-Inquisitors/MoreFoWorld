@@ -6,6 +6,7 @@ import me.hsgamer.hscore.bukkit.utils.MessageUtils;
 import me.hsgamer.hscore.config.proxy.ConfigGenerator;
 import me.hsgamer.morefoworld.command.MainCommand;
 import me.hsgamer.morefoworld.config.MainConfig;
+import me.hsgamer.morefoworld.listener.PortalListener;
 import org.bukkit.WorldCreator;
 
 public final class MoreFoWorld extends BasePlugin {
@@ -29,5 +30,6 @@ public final class MoreFoWorld extends BasePlugin {
         }
 
         registerCommand(new MainCommand(this));
+        registerListener(new PortalListener(this));
     }
 }
