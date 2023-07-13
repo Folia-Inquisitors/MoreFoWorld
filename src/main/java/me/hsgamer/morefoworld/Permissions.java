@@ -8,6 +8,7 @@ public final class Permissions {
     public static final Permission TELEPORT_OTHERS = new Permission("morefoworld.teleport.others", PermissionDefault.OP);
     public static final Permission CURRENT_WORLD = new Permission("morefoworld.current", PermissionDefault.OP);
     public static final Permission CURRENT_WORLD_OTHERS = new Permission("morefoworld.current.others", PermissionDefault.OP);
+    public static final Permission LINK_PORTAL = new Permission("morefoworld.linkportal", PermissionDefault.OP);
 
     private Permissions() {
         // EMPTY

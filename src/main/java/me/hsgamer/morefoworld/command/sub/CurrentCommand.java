@@ -12,7 +12,7 @@ import java.util.List;
 
 public class CurrentCommand extends SubCommand {
     public CurrentCommand() {
-        super("current", "Get the world of the player", "/<label> current [player]", Permissions.CURRENT_WORLD_OTHERS.getName(), true);
+        super("current", "Get the world of the player", "/<label> current [player]", Permissions.CURRENT_WORLD.getName(), true);
     }
 
     @Override

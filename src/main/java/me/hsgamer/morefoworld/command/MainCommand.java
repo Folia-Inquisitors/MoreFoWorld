@@ -3,7 +3,9 @@ package me.hsgamer.morefoworld.command;
 import me.hsgamer.hscore.bukkit.command.sub.SubCommandManager;
 import me.hsgamer.morefoworld.MoreFoWorld;
 import me.hsgamer.morefoworld.command.sub.CurrentCommand;
+import me.hsgamer.morefoworld.command.sub.LinkPortalCommand;
 import me.hsgamer.morefoworld.command.sub.TeleportCommand;
+import me.hsgamer.morefoworld.command.sub.UnlinkPortalCommand;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
@@ -19,6 +21,8 @@ public class MainCommand extends Command {
         this.subCommandManager = new SubCommandManager();
         subCommandManager.registerSubcommand(new CurrentCommand());
         subCommandManager.registerSubcommand(new TeleportCommand(plugin));
+        subCommandManager.registerSubcommand(new LinkPortalCommand(plugin));
+        subCommandManager.registerSubcommand(new UnlinkPortalCommand(plugin));
     }
 
     @Override
