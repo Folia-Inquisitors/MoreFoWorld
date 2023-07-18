@@ -41,7 +41,7 @@ public final class MoreFoWorld extends BasePlugin {
 
     public void debug(String message) {
         if (mainConfig.isDebug()) {
-            getLogger().fine(message);
+            getLogger().info(message);
         }
     }
 }
