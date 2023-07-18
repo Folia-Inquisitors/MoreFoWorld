@@ -21,9 +21,9 @@ public class PortalListener implements Listener {
     public void onPlayerPortal(PlayerPortalEvent event) {
         Location from = event.getFrom();
         Location to = event.getTo();
-        System.out.println("Portal Cause: " + event.getCause());
-        System.out.println("From: " + from);
-        System.out.println("To: " + to);
+        plugin.debug("Portal Cause: " + event.getCause());
+        plugin.debug("From: " + from);
+        plugin.debug("To: " + to);
         Optional<World> worldOptional = switch (event.getCause()) {
             case NETHER_PORTAL -> plugin.getPortalConfig().getWorldFromNetherPortal(from.getWorld());
             case END_PORTAL -> plugin.getPortalConfig().getWorldFromEndPortal(from.getWorld());
@@ -33,7 +33,7 @@ public class PortalListener implements Listener {
             Location clone = to.clone();
             clone.setWorld(world);
             event.setTo(clone);
-            System.out.println(clone);
+            plugin.debug("Set Portal to " + clone);
         });
     }
 
@@ -41,9 +41,9 @@ public class PortalListener implements Listener {
     public void onEntityPortal(EntityPortalEvent event) {
         Location from = event.getFrom();
         Location to = event.getTo();
-        System.out.println("Entity Portal: " + event.getPortalType());
-        System.out.println("From: " + from);
-        System.out.println("To: " + to);
+        plugin.debug("Entity Portal: " + event.getPortalType());
+        plugin.debug("From: " + from);
+        plugin.debug("To: " + to);
         if (to == null) {
             return;
         }
@@ -56,7 +56,7 @@ public class PortalListener implements Listener {
             Location clone = to.clone();
             clone.setWorld(world);
             event.setTo(clone);
-            System.out.println(clone);
+            plugin.debug("Set Portal to " + clone);
         });
     }
 }

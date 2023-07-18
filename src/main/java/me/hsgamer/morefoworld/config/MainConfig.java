@@ -13,4 +13,9 @@ public interface MainConfig {
     default List<WorldSetting> getWorldSettings() {
         return List.of(new WorldSetting("new_world"));
     }
+
+    @ConfigPath("debug")
+    default boolean isDebug() {
+        return false;
+    }
 }

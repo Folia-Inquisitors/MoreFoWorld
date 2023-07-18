@@ -38,4 +38,10 @@ public final class MoreFoWorld extends BasePlugin {
     public PortalConfig getPortalConfig() {
         return portalConfig;
     }
+
+    public void debug(String message) {
+        if (mainConfig.isDebug()) {
+            getLogger().fine(message);
+        }
+    }
 }
