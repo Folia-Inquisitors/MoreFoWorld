@@ -8,14 +8,17 @@ import me.hsgamer.morefoworld.command.MainCommand;
 import me.hsgamer.morefoworld.config.MainConfig;
 import me.hsgamer.morefoworld.config.PortalConfig;
 import me.hsgamer.morefoworld.config.RespawnConfig;
+import me.hsgamer.morefoworld.config.SpawnConfig;
 import me.hsgamer.morefoworld.listener.PortalListener;
 import me.hsgamer.morefoworld.listener.RespawnListener;
+import me.hsgamer.morefoworld.listener.SpawnListener;
 import org.bukkit.WorldCreator;
 
 public final class MoreFoWorld extends BasePlugin {
     private final MainConfig mainConfig = ConfigGenerator.newInstance(MainConfig.class, new BukkitConfig(this));
     private final PortalConfig portalConfig = ConfigGenerator.newInstance(PortalConfig.class, new BukkitConfig(this, "portals.yml"));
     private final RespawnConfig respawnConfig = ConfigGenerator.newInstance(RespawnConfig.class, new BukkitConfig(this, "respawn.yml"));
+    private final SpawnConfig spawnConfig = ConfigGenerator.newInstance(SpawnConfig.class, new BukkitConfig(this, "spawn.yml"));
 
     @Override
     public void load() {
@@ -37,6 +40,7 @@ public final class MoreFoWorld extends BasePlugin {
         registerCommand(new MainCommand(this));
         registerListener(new PortalListener(this));
         registerListener(new RespawnListener(this));
+        registerListener(new SpawnListener(this));
     }
 
     public PortalConfig getPortalConfig() {
@@ -45,6 +49,10 @@ public final class MoreFoWorld extends BasePlugin {
 
     public RespawnConfig getRespawnConfig() {
         return respawnConfig;
+    }
+
+    public SpawnConfig getSpawnConfig() {
+        return spawnConfig;
     }
 
     public void debug(String message) {

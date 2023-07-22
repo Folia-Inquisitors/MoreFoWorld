@@ -10,6 +10,7 @@ public final class Permissions {
     public static final Permission CURRENT_WORLD_OTHERS = new Permission("morefoworld.current.others", PermissionDefault.OP);
     public static final Permission LINK_PORTAL = new Permission("morefoworld.linkportal", PermissionDefault.OP);
     public static final Permission LINK_RESPAWN = new Permission("morefoworld.linkrespawn", PermissionDefault.OP);
+    public static final Permission SET_SPAWN = new Permission("morefoworld.setspawn", PermissionDefault.OP);
 
     private Permissions() {
         // EMPTY

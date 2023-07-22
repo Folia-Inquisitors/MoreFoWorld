@@ -22,6 +22,7 @@ public class MainCommand extends Command {
         subCommandManager.registerSubcommand(new UnlinkPortalCommand(plugin));
         subCommandManager.registerSubcommand(new LinkRespawnCommand(plugin));
         subCommandManager.registerSubcommand(new UnlinkRespawnCommand(plugin));
+        subCommandManager.registerSubcommand(new SetSpawnCommand(plugin));
     }
 
     @Override
