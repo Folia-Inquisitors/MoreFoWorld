@@ -5,23 +5,11 @@ import com.google.common.collect.ImmutableBiMap;
 import me.hsgamer.hscore.config.annotation.ConfigPath;
 import me.hsgamer.hscore.config.annotation.StickyValue;
 import me.hsgamer.morefoworld.config.converter.WorldBiMapConverter;
-import org.bukkit.Bukkit;
 import org.bukkit.World;
 
 import java.util.Optional;
 
 public interface PortalConfig {
-    static Optional<World> getWorldFromPortal(World world, BiMap<String, String> portals) {
-        String worldName = world.getName();
-        Optional<String> optional = Optional.empty();
-        if (portals.containsKey(worldName)) {
-            optional = Optional.of(portals.get(worldName));
-        } else if (portals.containsValue(worldName)) {
-            optional = Optional.of(portals.inverse().get(worldName));
-        }
-        return optional.map(Bukkit::getWorld);
-    }
-
     @ConfigPath(value = "nether", converter = WorldBiMapConverter.class)
     @StickyValue
     default BiMap<String, String> getNetherPortals() {
@@ -50,7 +38,7 @@ public interface PortalConfig {
     }
 
     default Optional<World> getWorldFromNetherPortal(World world) {
-        return getWorldFromPortal(world, getNetherPortals());
+        return WorldConfigUtil.getLinkedWorld(world, getNetherPortals());
     }
 
     @ConfigPath(value = "end", converter = WorldBiMapConverter.class)
@@ -81,6 +69,6 @@ public interface PortalConfig {
     }
 
     default Optional<World> getWorldFromEndPortal(World world) {
-        return getWorldFromPortal(world, getEndPortals());
+        return WorldConfigUtil.getLinkedWorld(world, getEndPortals());
     }
 }
