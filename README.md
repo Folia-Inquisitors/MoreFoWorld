@@ -2,6 +2,8 @@
 
 A (temporary) world manager for Folia
 
+_Why does this even exist ??_
+
 ## Commands & Permissions
 
 | Command                                               | Permission                    | Description                                        |
