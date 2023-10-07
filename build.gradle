@@ -1,6 +1,6 @@
 plugins {
     id 'java'
-    id("io.papermc.paperweight.userdev") version "1.5.5"
+    id("io.papermc.paperweight.userdev") version "1.5.7"
     id 'com.github.johnrengelman.shadow' version '8.1.1'
 }
 
@@ -21,9 +21,9 @@ repositories {
 }
 
 dependencies {
-    paperweight.foliaDevBundle("1.20.1-R0.1-SNAPSHOT")
+    paperweight.paperDevBundle("1.20.2-R0.1-SNAPSHOT")
 
-    def core = "4.3.10"
+    def core = "4.3.13"
     implementation "me.hsgamer:hscore-bukkit-baseplugin:$core"
     implementation "me.hsgamer:hscore-bukkit-config:$core"
     implementation "me.hsgamer:hscore-bukkit-utils:$core"

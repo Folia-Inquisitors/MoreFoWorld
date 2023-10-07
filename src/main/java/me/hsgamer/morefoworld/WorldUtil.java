@@ -34,9 +34,9 @@ import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
-import org.bukkit.craftbukkit.v1_20_R1.CraftServer;
-import org.bukkit.craftbukkit.v1_20_R1.CraftWorld;
-import org.bukkit.craftbukkit.v1_20_R1.generator.CraftWorldInfo;
+import org.bukkit.craftbukkit.v1_20_R2.CraftServer;
+import org.bukkit.craftbukkit.v1_20_R2.CraftWorld;
+import org.bukkit.craftbukkit.v1_20_R2.generator.CraftWorldInfo;
 import org.bukkit.generator.BiomeProvider;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.generator.WorldInfo;
@@ -153,7 +153,7 @@ public final class WorldUtil {
 
         console.addLevel(internal);
         int loadRegionRadius = ((32) >> 4);
-        internal.randomSpawnSelection = new ChunkPos(internal.getChunkSource().randomState().sampler().findSpawnPosition());
+//        internal.randomSpawnSelection = new ChunkPos(internal.getChunkSource().randomState().sampler().findSpawnPosition());
         for (int currX = -loadRegionRadius; currX <= loadRegionRadius; ++currX) {
             for (int currZ = -loadRegionRadius; currZ <= loadRegionRadius; ++currZ) {
                 ChunkPos pos = new ChunkPos(currX, currZ);
