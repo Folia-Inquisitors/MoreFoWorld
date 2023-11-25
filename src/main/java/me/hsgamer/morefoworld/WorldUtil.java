@@ -153,7 +153,7 @@ public final class WorldUtil {
 
         console.addLevel(internal);
         int loadRegionRadius = ((32) >> 4);
-//        internal.randomSpawnSelection = new ChunkPos(internal.getChunkSource().randomState().sampler().findSpawnPosition());
+        internal.randomSpawnSelection = new ChunkPos(internal.getChunkSource().randomState().sampler().findSpawnPosition());
         for (int currX = -loadRegionRadius; currX <= loadRegionRadius; ++currX) {
             for (int currZ = -loadRegionRadius; currZ <= loadRegionRadius; ++currZ) {
                 ChunkPos pos = new ChunkPos(currX, currZ);

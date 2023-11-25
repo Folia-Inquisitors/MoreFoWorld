@@ -21,7 +21,7 @@ repositories {
 }
 
 dependencies {
-    paperweight.paperDevBundle("1.20.2-R0.1-SNAPSHOT")
+    paperweight.foliaDevBundle("1.20.2-R0.1-SNAPSHOT")
 
     def core = "4.3.13"
     implementation "me.hsgamer:hscore-bukkit-baseplugin:$core"
