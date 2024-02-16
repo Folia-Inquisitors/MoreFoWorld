@@ -38,6 +38,7 @@ jobs:
             build/libs/MoreFoWorld.jar
             build/libs/MoreFoWorld-*.jar
         env:
+          DOCKER_PLATFORMS: hangar
           DESCRIPTION: ${{ steps.changelog.outputs.changelog }}
           GAME_VERSIONS: "1.20.4"
 
