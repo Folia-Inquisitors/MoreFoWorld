@@ -40,7 +40,6 @@ assemble {
 shadowJar {
     relocate("me.hsgamer.hscore", "me.hsgamer.morefoworld.core")
     minimize()
-    archiveFileName.set("MoreFoWorld.jar")
 }
 
 def targetJavaVersion = 17
