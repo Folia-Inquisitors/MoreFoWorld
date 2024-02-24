@@ -20,6 +20,10 @@ jobs:
         uses: metcalfc/changelog-generator@v4.3.0
         with:
           myToken: ${{ secrets.GITHUB_TOKEN }}
+      - name: Read version
+        id: version
+        run: |
+          echo "::set-output name=version::$(cat version | head -n 1)"
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -37,7 +41,7 @@ jobs:
           files: build/libs/MoreFoWorld-*.jar
         env:
           DESCRIPTION: ${{ steps.changelog.outputs.changelog }}
-          GAME_VERSIONS: "1.20.4"
+          GAME_VERSIONS: ${{ steps.version.outputs.version }}
 
           GITHUB_TOKEN: ${{ github.token }}
 
