@@ -1,23 +1,23 @@
 package me.hsgamer.morefoworld.listener;
 
-import me.hsgamer.morefoworld.MoreFoWorld;
+import io.github.projectunified.minelib.plugin.base.BasePlugin;
+import io.github.projectunified.minelib.plugin.listener.ListenerComponent;
+import me.hsgamer.morefoworld.config.SpawnConfig;
 import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
 import org.spigotmc.event.player.PlayerSpawnLocationEvent;
 
-public class SpawnListener implements Listener {
-    private final MoreFoWorld plugin;
-
-    public SpawnListener(MoreFoWorld plugin) {
-        this.plugin = plugin;
+public class SpawnListener extends ListenerComponent {
+    public SpawnListener(BasePlugin plugin) {
+        super(plugin);
     }
 
     @EventHandler
     public void onSpawn(PlayerSpawnLocationEvent event) {
-        if (!plugin.getSpawnConfig().isEnabled()) return;
+        SpawnConfig spawnConfig = plugin.get(SpawnConfig.class);
 
-        if (plugin.getSpawnConfig().isFirstJoin() && !event.getPlayer().hasPlayedBefore()) return;
+        if (!spawnConfig.isEnabled()) return;
+        if (spawnConfig.isFirstJoin() && !event.getPlayer().hasPlayedBefore()) return;
 
-        event.setSpawnLocation(plugin.getSpawnConfig().getPosition().toLocation());
+        event.setSpawnLocation(spawnConfig.getPosition().toLocation());
     }
 }

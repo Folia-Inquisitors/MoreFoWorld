@@ -3,6 +3,7 @@ package me.hsgamer.morefoworld.command.sub;
 import me.hsgamer.hscore.bukkit.utils.MessageUtils;
 import me.hsgamer.morefoworld.MoreFoWorld;
 import me.hsgamer.morefoworld.Permissions;
+import me.hsgamer.morefoworld.config.PortalConfig;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 
@@ -23,8 +24,8 @@ public class UnlinkPortalCommand extends UnlinkWorldCommand {
     protected void onWorldCommand(CommandSender sender, World world, String... args) {
         Predicate<String> action;
         switch (args[0].toLowerCase(Locale.ROOT)) {
-            case "nether" -> action = plugin.getPortalConfig()::unlinkNetherPortal;
-            case "end" -> action = plugin.getPortalConfig()::unlinkEndPortal;
+            case "nether" -> action = plugin.get(PortalConfig.class)::unlinkNetherPortal;
+            case "end" -> action = plugin.get(PortalConfig.class)::unlinkEndPortal;
             default -> {
                 MessageUtils.sendMessage(sender, "&cInvalid type: &e" + args[3]);
                 return;

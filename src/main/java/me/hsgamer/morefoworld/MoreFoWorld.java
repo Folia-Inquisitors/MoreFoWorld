@@ -1,6 +1,7 @@
 package me.hsgamer.morefoworld;
 
-import me.hsgamer.hscore.bukkit.baseplugin.BasePlugin;
+import io.github.projectunified.minelib.plugin.base.BasePlugin;
+import io.github.projectunified.minelib.plugin.command.CommandComponent;
 import me.hsgamer.hscore.bukkit.config.BukkitConfig;
 import me.hsgamer.hscore.bukkit.utils.MessageUtils;
 import me.hsgamer.hscore.config.proxy.ConfigGenerator;
@@ -14,11 +15,23 @@ import me.hsgamer.morefoworld.listener.RespawnListener;
 import me.hsgamer.morefoworld.listener.SpawnListener;
 import org.bukkit.WorldCreator;
 
+import java.util.List;
+
 public final class MoreFoWorld extends BasePlugin {
-    private final MainConfig mainConfig = ConfigGenerator.newInstance(MainConfig.class, new BukkitConfig(this));
-    private final PortalConfig portalConfig = ConfigGenerator.newInstance(PortalConfig.class, new BukkitConfig(this, "portals.yml"));
-    private final RespawnConfig respawnConfig = ConfigGenerator.newInstance(RespawnConfig.class, new BukkitConfig(this, "respawn.yml"));
-    private final SpawnConfig spawnConfig = ConfigGenerator.newInstance(SpawnConfig.class, new BukkitConfig(this, "spawn.yml"));
+    @Override
+    protected List<Object> getComponents() {
+        return List.of(
+                ConfigGenerator.newInstance(MainConfig.class, new BukkitConfig(this)),
+                ConfigGenerator.newInstance(PortalConfig.class, new BukkitConfig(this, "portals.yml")),
+                ConfigGenerator.newInstance(RespawnConfig.class, new BukkitConfig(this, "respawn.yml")),
+                ConfigGenerator.newInstance(SpawnConfig.class, new BukkitConfig(this, "spawn.yml")),
+                new DebugComponent(this),
+                new PortalListener(this),
+                new RespawnListener(this),
+                new SpawnListener(this),
+                new CommandComponent(this, () -> List.of(new MainCommand(this)))
+        );
+    }
 
     @Override
     public void load() {
@@ -27,7 +40,7 @@ public final class MoreFoWorld extends BasePlugin {
 
     @Override
     public void enable() {
-        for (WorldSetting worldSetting : mainConfig.getWorldSettings()) {
+        for (WorldSetting worldSetting : get(MainConfig.class).getWorldSettings()) {
             WorldCreator worldCreator = worldSetting.toWorldCreator();
             WorldUtil.FeedbackWorld feedbackWorld = WorldUtil.addWorld(worldCreator);
             if (feedbackWorld.feedback == WorldUtil.Feedback.SUCCESS) {
@@ -35,29 +48,6 @@ public final class MoreFoWorld extends BasePlugin {
             } else {
                 getLogger().warning("World " + worldSetting.getName() + " is not added: " + feedbackWorld.feedback);
             }
-        }
-
-        registerCommand(new MainCommand(this));
-        registerListener(new PortalListener(this));
-        registerListener(new RespawnListener(this));
-        registerListener(new SpawnListener(this));
-    }
-
-    public PortalConfig getPortalConfig() {
-        return portalConfig;
-    }
-
-    public RespawnConfig getRespawnConfig() {
-        return respawnConfig;
-    }
-
-    public SpawnConfig getSpawnConfig() {
-        return spawnConfig;
-    }
-
-    public void debug(String message) {
-        if (mainConfig.isDebug()) {
-            getLogger().info(message);
         }
     }
 }

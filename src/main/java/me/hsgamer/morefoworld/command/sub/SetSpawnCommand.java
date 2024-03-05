@@ -4,6 +4,7 @@ import me.hsgamer.hscore.bukkit.command.sub.SubCommand;
 import me.hsgamer.hscore.bukkit.utils.MessageUtils;
 import me.hsgamer.morefoworld.MoreFoWorld;
 import me.hsgamer.morefoworld.Permissions;
+import me.hsgamer.morefoworld.config.SpawnConfig;
 import me.hsgamer.morefoworld.config.object.WorldPosition;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -20,7 +21,7 @@ public class SetSpawnCommand extends SubCommand {
     @Override
     public void onSubCommand(@NotNull CommandSender sender, @NotNull String label, @NotNull String... args) {
         Player player = (Player) sender;
-        plugin.getSpawnConfig().setPosition(WorldPosition.fromLocation(player.getLocation()));
+        plugin.get(SpawnConfig.class).setPosition(WorldPosition.fromLocation(player.getLocation()));
         MessageUtils.sendMessage(player, "&aSpawn location set");
     }
 }

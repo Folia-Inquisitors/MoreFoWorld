@@ -3,6 +3,7 @@ package me.hsgamer.morefoworld.command.sub;
 import me.hsgamer.hscore.bukkit.utils.MessageUtils;
 import me.hsgamer.morefoworld.MoreFoWorld;
 import me.hsgamer.morefoworld.Permissions;
+import me.hsgamer.morefoworld.config.RespawnConfig;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 
@@ -19,7 +20,7 @@ public class LinkRespawnCommand extends LinkWorldCommand {
 
     @Override
     protected void onWorldCommand(CommandSender sender, World from, World to, String... args) {
-        plugin.getRespawnConfig().linkWorld(from.getName(), to.getName());
+        plugin.get(RespawnConfig.class).linkWorld(from.getName(), to.getName());
         MessageUtils.sendMessage(sender, "&aSuccessfully linked");
     }
 

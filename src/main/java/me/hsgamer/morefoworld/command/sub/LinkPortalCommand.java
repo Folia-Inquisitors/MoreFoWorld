@@ -3,6 +3,7 @@ package me.hsgamer.morefoworld.command.sub;
 import me.hsgamer.hscore.bukkit.utils.MessageUtils;
 import me.hsgamer.morefoworld.MoreFoWorld;
 import me.hsgamer.morefoworld.Permissions;
+import me.hsgamer.morefoworld.config.PortalConfig;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 
@@ -23,8 +24,8 @@ public class LinkPortalCommand extends LinkWorldCommand {
     protected void onWorldCommand(CommandSender sender, World from, World to, String... args) {
         BiConsumer<String, String> action;
         switch (args[0].toLowerCase(Locale.ROOT)) {
-            case "nether" -> action = plugin.getPortalConfig()::linkNetherPortal;
-            case "end" -> action = plugin.getPortalConfig()::linkEndPortal;
+            case "nether" -> action = plugin.get(PortalConfig.class)::linkNetherPortal;
+            case "end" -> action = plugin.get(PortalConfig.class)::linkEndPortal;
             default -> {
                 MessageUtils.sendMessage(sender, "&cInvalid type: &e" + args[0]);
                 return;

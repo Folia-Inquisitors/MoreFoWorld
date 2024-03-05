@@ -1,33 +1,35 @@
 package me.hsgamer.morefoworld.listener;
 
-import me.hsgamer.morefoworld.MoreFoWorld;
+import io.github.projectunified.minelib.plugin.base.BasePlugin;
+import io.github.projectunified.minelib.plugin.listener.ListenerComponent;
+import me.hsgamer.morefoworld.DebugComponent;
+import me.hsgamer.morefoworld.config.RespawnConfig;
 import org.bukkit.Location;
 import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerRespawnEvent;
 
 import java.util.Optional;
 
-public class RespawnListener implements Listener {
-    private final MoreFoWorld plugin;
+public class RespawnListener extends ListenerComponent {
+    private final DebugComponent debug = plugin.get(DebugComponent.class);
 
-    public RespawnListener(MoreFoWorld plugin) {
-        this.plugin = plugin;
+    public RespawnListener(BasePlugin plugin) {
+        super(plugin);
     }
 
     @EventHandler
     public void onRespawn(PlayerRespawnEvent event) {
-        plugin.debug("Respawn: " + event.getPlayer().getName() + " in " + event.getRespawnLocation());
-        plugin.debug("Reason: " + event.getRespawnReason());
+        debug.debug("Respawn: " + event.getPlayer().getName() + " in " + event.getRespawnLocation());
+        debug.debug("Reason: " + event.getRespawnReason());
 
         Optional.ofNullable(event.getPlayer().getLastDeathLocation())
                 .map(Location::getWorld)
-                .flatMap(plugin.getRespawnConfig()::getRespawnWorld)
+                .flatMap(plugin.get(RespawnConfig.class)::getRespawnWorld)
                 .ifPresent(world -> {
                     Location respawnLocation = event.getRespawnLocation();
                     respawnLocation.setWorld(world);
                     event.setRespawnLocation(respawnLocation);
-                    plugin.debug("Set Respawn to " + world);
+                    debug.debug("Set Respawn to " + world);
                 });
     }
 }

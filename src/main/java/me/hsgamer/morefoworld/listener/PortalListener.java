@@ -1,34 +1,36 @@
 package me.hsgamer.morefoworld.listener;
 
+import io.github.projectunified.minelib.plugin.base.BasePlugin;
+import io.github.projectunified.minelib.plugin.listener.ListenerComponent;
 import io.papermc.paper.event.entity.EntityPortalReadyEvent;
-import me.hsgamer.morefoworld.MoreFoWorld;
+import me.hsgamer.morefoworld.DebugComponent;
+import me.hsgamer.morefoworld.config.PortalConfig;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
 import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityPortalEvent;
 import org.bukkit.event.player.PlayerPortalEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 
 import java.util.Optional;
 
-public class PortalListener implements Listener {
-    private final MoreFoWorld plugin;
+public class PortalListener extends ListenerComponent {
+    private final DebugComponent debug = plugin.get(DebugComponent.class);
 
-    public PortalListener(MoreFoWorld plugin) {
-        this.plugin = plugin;
+    public PortalListener(BasePlugin plugin) {
+        super(plugin);
     }
 
     @EventHandler
     public void onPortalReady(EntityPortalReadyEvent event) {
         if (event.getPortalType() != PortalType.NETHER) return;
-        plugin.debug("Portal Ready: " + event.getEntity().getWorld());
-        plugin.debug("Portal Type: " + event.getPortalType());
-        plugin.getPortalConfig().getWorldFromNetherPortal(event.getEntity().getWorld()).ifPresent(world -> {
+        debug.debug("Portal Ready: " + event.getEntity().getWorld());
+        debug.debug("Portal Type: " + event.getPortalType());
+        plugin.get(PortalConfig.class).getWorldFromNetherPortal(event.getEntity().getWorld()).ifPresent(world -> {
             event.setTargetWorld(world);
-            plugin.debug("Set Portal to " + world);
+            debug.debug("Set Portal to " + world);
         });
     }
 
@@ -49,7 +51,7 @@ public class PortalListener implements Listener {
                     }
                 }
             }
-            entity.teleportAsync(location).thenRun(() -> plugin.debug("Teleported to " + location));
+            entity.teleportAsync(location).thenRun(() -> debug.debug("Teleported to " + location));
         });
     }
 
@@ -59,10 +61,10 @@ public class PortalListener implements Listener {
 
         Location from = event.getFrom();
         Location to = event.getTo();
-        plugin.debug("Portal Cause: " + event.getCause());
-        plugin.debug("From: " + from);
-        plugin.debug("To: " + to);
-        Optional<World> worldOptional = plugin.getPortalConfig().getWorldFromEndPortal(from.getWorld());
+        debug.debug("Portal Cause: " + event.getCause());
+        debug.debug("From: " + from);
+        debug.debug("To: " + to);
+        Optional<World> worldOptional = plugin.get(PortalConfig.class).getWorldFromEndPortal(from.getWorld());
 
         worldOptional.ifPresent(world -> {
             Location clone = to.clone();
@@ -71,9 +73,9 @@ public class PortalListener implements Listener {
             event.setCancelled(true);
             if (world.getEnvironment() == World.Environment.THE_END) {
                 teleportToEnd(event.getPlayer(), clone);
-                plugin.debug("Teleport to " + clone);
+                debug.debug("Teleport to " + clone);
             } else {
-                event.getPlayer().teleportAsync(clone).thenRun(() -> plugin.debug("Teleported to " + clone));
+                event.getPlayer().teleportAsync(clone).thenRun(() -> debug.debug("Teleported to " + clone));
             }
         });
     }
@@ -84,14 +86,14 @@ public class PortalListener implements Listener {
 
         Location from = event.getFrom();
         Location to = event.getTo();
-        plugin.debug("Entity Portal: " + event.getPortalType());
-        plugin.debug("From: " + from);
-        plugin.debug("To: " + to);
+        debug.debug("Entity Portal: " + event.getPortalType());
+        debug.debug("From: " + from);
+        debug.debug("To: " + to);
         if (to == null) {
             return;
         }
 
-        Optional<World> worldOptional = plugin.getPortalConfig().getWorldFromEndPortal(from.getWorld());
+        Optional<World> worldOptional = plugin.get(PortalConfig.class).getWorldFromEndPortal(from.getWorld());
 
         worldOptional.ifPresent(world -> {
             Location clone = to.clone();
@@ -100,9 +102,9 @@ public class PortalListener implements Listener {
             event.setCancelled(true);
             if (world.getEnvironment() == World.Environment.THE_END) {
                 teleportToEnd(event.getEntity(), clone);
-                plugin.debug("Teleport to " + clone);
+                debug.debug("Teleport to " + clone);
             } else {
-                event.getEntity().teleportAsync(clone).thenRun(() -> plugin.debug("Teleported to " + clone));
+                event.getEntity().teleportAsync(clone).thenRun(() -> debug.debug("Teleported to " + clone));
             }
         });
     }
