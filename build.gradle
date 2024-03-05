@@ -35,7 +35,7 @@ dependencies {
     implementation "me.hsgamer:hscore-config-proxy:$core"
     implementation "me.hsgamer:hscore-common:$core"
 
-    def minelib = "1.1.0"
+    def minelib = "1.1.1"
     implementation "io.github.projectunified:minelib-plugin-base:$minelib"
     implementation "io.github.projectunified:minelib-plugin-listener:$minelib"
     implementation "io.github.projectunified:minelib-plugin-permission:$minelib"
