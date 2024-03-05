@@ -17,10 +17,15 @@ import org.bukkit.event.player.PlayerTeleportEvent;
 import java.util.Optional;
 
 public class PortalListener extends ListenerComponent {
-    private final DebugComponent debug = plugin.get(DebugComponent.class);
+    private DebugComponent debug;
 
     public PortalListener(BasePlugin plugin) {
         super(plugin);
+    }
+
+    @Override
+    public void load() {
+        debug = plugin.get(DebugComponent.class);
     }
 
     @EventHandler

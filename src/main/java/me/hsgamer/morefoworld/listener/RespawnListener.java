@@ -11,10 +11,15 @@ import org.bukkit.event.player.PlayerRespawnEvent;
 import java.util.Optional;
 
 public class RespawnListener extends ListenerComponent {
-    private final DebugComponent debug = plugin.get(DebugComponent.class);
+    private DebugComponent debug;
 
     public RespawnListener(BasePlugin plugin) {
         super(plugin);
+    }
+
+    @Override
+    public void load() {
+        debug = plugin.get(DebugComponent.class);
     }
 
     @EventHandler
