@@ -4,6 +4,13 @@ A (temporary) world manager for Folia
 
 _Why does this even exist ??_
 
+## Not Working
+
+- Respawn World
+- Portal Teleporting
+
+> Because the current Folia builds don't support them. If one of them does get supported, the related commands will be working.
+
 ## Commands & Permissions
 
 | Command                                               | Permission                    | Description                                        |
