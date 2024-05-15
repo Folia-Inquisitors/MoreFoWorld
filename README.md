@@ -24,3 +24,9 @@ _Why does this even exist ??_
 | `/mfw linkrespawn <from> <to>`                        | `morefoworld.linkrespawn`     | Link Respawn points between `from` and `to`        |
 | `/mfw unlinkrespawn <world>`                          | `morefoworld.linkrespawn`     | Un-link Respawn points of a `world`                |
 | `/mfw setspawn`                                       | `morefoworld.setspawn`        | Set the spawn point when a player joins the server |
+
+## FAQ
+
+### Why are you slow on updating to the latest Minecraft version ?
+
+This plugin depends on the `dev-bundle` of Folia to build the files. Since they usually are slow on providing the necessary dependency, we can't update the project without breaking our usual workflow. So, be patient.
