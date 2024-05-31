@@ -38,7 +38,7 @@ jobs:
       - name: Release
         uses: HSGamer/action-mcreleaser@main
         with:
-          files: build/libs/MoreFoWorld-*.jar
+          files: build/libs/MoreFoWorld-*-all.jar
         env:
           DESCRIPTION: ${{ steps.changelog.outputs.changelog }}
           GAME_VERSIONS: ${{ steps.version.outputs.version }}
