@@ -1,6 +1,6 @@
 plugins {
     id 'java'
-    id("io.papermc.paperweight.userdev") version "1.5.7"
+    id("io.papermc.paperweight.userdev") version "1.7.1"
     id 'com.github.johnrengelman.shadow' version '8.1.1'
 }
 
@@ -53,7 +53,7 @@ shadowJar {
     minimize()
 }
 
-def targetJavaVersion = 17
+def targetJavaVersion = 21
 java {
     def javaVersion = JavaVersion.toVersion(targetJavaVersion)
     sourceCompatibility = javaVersion
