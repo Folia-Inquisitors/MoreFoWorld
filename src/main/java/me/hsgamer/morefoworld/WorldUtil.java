@@ -3,6 +3,8 @@ package me.hsgamer.morefoworld;
 import com.google.common.collect.ImmutableList;
 import com.mojang.serialization.Dynamic;
 import com.mojang.serialization.Lifecycle;
+import net.kyori.adventure.util.TriState;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.NbtException;
 import net.minecraft.nbt.ReportedNbtException;
@@ -34,9 +36,9 @@ import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
-import org.bukkit.craftbukkit.v1_20_R3.CraftServer;
-import org.bukkit.craftbukkit.v1_20_R3.CraftWorld;
-import org.bukkit.craftbukkit.v1_20_R3.generator.CraftWorldInfo;
+import org.bukkit.craftbukkit.CraftServer;
+import org.bukkit.craftbukkit.CraftWorld;
+import org.bukkit.craftbukkit.generator.CraftWorldInfo;
 import org.bukkit.generator.BiomeProvider;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.generator.WorldInfo;
@@ -153,12 +155,13 @@ public final class WorldUtil {
 
         PrimaryLevelData worlddata;
         WorldLoader.DataLoadContext worldloader_a = console.worldLoader;
-        net.minecraft.core.Registry<LevelStem> iregistry = worldloader_a.datapackDimensions().registryOrThrow(Registries.LEVEL_STEM);
+        RegistryAccess.Frozen iregistrycustom_dimension = worldloader_a.datapackDimensions();
+        net.minecraft.core.Registry<LevelStem> iregistry = iregistrycustom_dimension.registryOrThrow(Registries.LEVEL_STEM);
         if (dynamic != null) {
             LevelDataAndDimensions leveldataanddimensions = LevelStorageSource.getLevelDataAndDimensions(dynamic, worldloader_a.dataConfiguration(), iregistry, worldloader_a.datapackWorldgen());
 
             worlddata = (PrimaryLevelData) leveldataanddimensions.worldData();
-            iregistry = leveldataanddimensions.dimensions().dimensions();
+            iregistrycustom_dimension = leveldataanddimensions.dimensions().dimensionsRegistryAccess();
         } else {
             LevelSettings worldsettings;
             WorldOptions worldoptions = new WorldOptions(creator.seed(), creator.generateStructures(), false);
@@ -173,8 +176,9 @@ public final class WorldUtil {
             Lifecycle lifecycle = worlddimensions_b.lifecycle().add(worldloader_a.datapackWorldgen().allRegistriesLifecycle());
 
             worlddata = new PrimaryLevelData(worldsettings, worldoptions, worlddimensions_b.specialWorldProperty(), lifecycle);
-            iregistry = worlddimensions_b.dimensions();
+            iregistrycustom_dimension = worlddimensions_b.dimensionsRegistryAccess();
         }
+        iregistry = iregistrycustom_dimension.registryOrThrow(Registries.LEVEL_STEM);
         worlddata.customDimensions = iregistry;
         worlddata.checkName(name);
         worlddata.setModdedInfo(console.getServerModName(), console.getModdedStatus().shouldReportAsModified());
@@ -190,7 +194,7 @@ public final class WorldUtil {
 
         if (console.options.has("forceUpgrade")) {
             net.minecraft.server.Main.convertWorldButItWorks(
-                    actualDimension, worldSession, DataFixers.getDataFixer(), worlddimension.generator().getTypeNameForDataFixer(), console.options.has("eraseCache")
+                    actualDimension, worldSession, DataFixers.getDataFixer(), iregistrycustom_dimension, worlddimension.generator().getTypeNameForDataFixer(), console.options.has("eraseCache"), console.options.has("recreateRegionFiles")
             );
         }
 
@@ -198,6 +202,9 @@ public final class WorldUtil {
             worldKey = ResourceKey.create(Registries.DIMENSION, new net.minecraft.resources.ResourceLocation(creator.key().getNamespace().toLowerCase(java.util.Locale.ENGLISH), creator.key().getKey().toLowerCase(java.util.Locale.ENGLISH))); // Paper
         }
 
+        if (creator.keepSpawnLoaded() == TriState.FALSE) {
+            worlddata.getGameRules().getRule(GameRules.RULE_SPAWN_CHUNK_RADIUS).set(0, null);
+        }
         ServerLevel internal = new ServerLevel(console, console.executor, worldSession, worlddata, worldKey, worlddimension, console.progressListenerFactory.create(11),
                 worlddata.isDebugWorld(), j, creator.environment() == World.Environment.NORMAL ? list : ImmutableList.of(), true, null, creator.environment(), generator, biomeProvider);
 
@@ -215,8 +222,6 @@ public final class WorldUtil {
         }
 
         internal.setSpawnSettings(true, true);
-
-        internal.keepSpawnInMemory = creator.keepSpawnLoaded().toBooleanOrElse(internal.getWorld().getKeepSpawnInMemory());
 
         return Feedback.SUCCESS.toFeedbackWorld(internal.getWorld());
     }
