@@ -118,9 +118,8 @@ public class PortalListener extends ListenerComponent {
         });
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void onEntityInsidePortal(final EntityInsideBlockEvent event) {
-        if (event.isCancelled()) return;
         Block block = event.getBlock();
         Entity entity = event.getEntity();
         Material blockTypeInside = block.getType();
@@ -134,7 +133,7 @@ public class PortalListener extends ListenerComponent {
 
         event.setCancelled(true);
 
-        if (portalTeleportCache.get(entity.getUniqueId()) != null) {
+        if (portalTeleportCache.containsKey(entity.getUniqueId())) {
             debug.debug("The entity is being teleported");
             return;
         }
