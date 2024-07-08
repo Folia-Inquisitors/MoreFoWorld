@@ -20,6 +20,7 @@ import java.util.List;
 public final class MoreFoWorld extends BasePlugin {
     @Override
     protected List<Object> getComponents() {
+        System.out.println("loaded mfw");
         return List.of(
                 ConfigGenerator.newInstance(MainConfig.class, new BukkitConfig(this)),
                 ConfigGenerator.newInstance(PortalConfig.class, new BukkitConfig(this, "portals.yml")),
