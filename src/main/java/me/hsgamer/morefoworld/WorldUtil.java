@@ -193,8 +193,8 @@ public final class WorldUtil {
         }
 
         if (console.options.has("forceUpgrade")) {
-            net.minecraft.server.Main.convertWorldButItWorks(
-                    actualDimension, worldSession, DataFixers.getDataFixer(), iregistrycustom_dimension, worlddimension.generator().getTypeNameForDataFixer(), console.options.has("eraseCache"), console.options.has("recreateRegionFiles")
+            net.minecraft.server.Main.forceUpgrade(
+                    worldSession, DataFixers.getDataFixer(), console.options.has("eraseCache"), () -> true, iregistrycustom_dimension, console.options.has("recreateRegionFiles")
             );
         }
 

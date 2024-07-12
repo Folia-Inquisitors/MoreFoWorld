@@ -2,6 +2,7 @@ package me.hsgamer.morefoworld.listener;
 
 import io.github.projectunified.minelib.plugin.base.BasePlugin;
 import io.github.projectunified.minelib.plugin.listener.ListenerComponent;
+import io.papermc.paper.event.entity.EntityInsideBlockEvent;
 import io.papermc.paper.event.entity.EntityPortalReadyEvent;
 import me.hsgamer.morefoworld.DebugComponent;
 import me.hsgamer.morefoworld.config.PortalConfig;
@@ -15,9 +16,12 @@ import org.bukkit.event.player.PlayerPortalEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 
 import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class PortalListener extends ListenerComponent {
     private DebugComponent debug;
+    private final ConcurrentHashMap<UUID, Material> portalTeleportCache = new ConcurrentHashMap<>();
 
     public PortalListener(BasePlugin plugin) {
         super(plugin);
@@ -112,5 +116,67 @@ public class PortalListener extends ListenerComponent {
                 event.getEntity().teleportAsync(clone).thenRun(() -> debug.debug("Teleported to " + clone));
             }
         });
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onEntityInsidePortal(final EntityInsideBlockEvent event) {
+        Block block = event.getBlock();
+        Entity entity = event.getEntity();
+        Material blockTypeInside = block.getType();
+        Location from = entity.getLocation();
+
+        if (!blockTypeInside.equals(Material.NETHER_PORTAL) && !blockTypeInside.equals(Material.END_PORTAL)) {
+            return;
+        }
+
+        debug.debug("Preparing for teleportation...");
+
+        event.setCancelled(true);
+
+        if (portalTeleportCache.containsKey(entity.getUniqueId())) {
+            debug.debug("The entity is being teleported");
+            return;
+        }
+
+        portalTeleportCache.put(entity.getUniqueId(), blockTypeInside);
+        entity.getScheduler().execute(plugin, () -> {
+            switch (blockTypeInside) {
+                case NETHER_PORTAL -> {
+
+                    debug.debug("Nether portal");
+
+                    Optional<World> worldOptional = plugin.get(PortalConfig.class).getWorldFromNetherPortal(from.getWorld());
+
+                    worldOptional.ifPresent(world -> {
+                        Location clone = from.clone();
+                        clone.setWorld(world);
+                        if (world.getEnvironment() == World.Environment.THE_END) {
+                            teleportToEnd(event.getEntity(), clone);
+                            debug.debug("Teleport to " + clone);
+                        } else {
+                            event.getEntity().teleportAsync(clone).thenRun(() -> debug.debug("Teleported to " + clone));
+                        }
+                    });
+                }
+                case END_PORTAL -> {
+
+                    debug.debug("End portal");
+
+                    Optional<World> worldOptional = plugin.get(PortalConfig.class).getWorldFromEndPortal(from.getWorld());
+
+                    worldOptional.ifPresent(world -> {
+                        Location clone = from.clone();
+                        clone.setWorld(world);
+                        if (world.getEnvironment() == World.Environment.THE_END) {
+                            teleportToEnd(event.getEntity(), clone);
+                            debug.debug("Teleport to " + clone);
+                        } else {
+                            event.getEntity().teleportAsync(clone).thenRun(() -> debug.debug("Teleported to " + clone));
+                        }
+                    });
+                }
+            }
+            portalTeleportCache.remove(entity.getUniqueId());
+        }, null, 1L);
     }
 }
