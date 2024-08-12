@@ -1,5 +1,3 @@
-import io.papermc.paperweight.userdev.ReobfArtifactConfiguration
-
 plugins {
     id 'java'
     id("io.papermc.paperweight.userdev") version "1.7.1"
@@ -7,11 +5,15 @@ plugins {
 }
 
 group = 'me.hsgamer'
-version = '1.6.0'
+version = '1.7.0-SNAPSHOT'
 description = 'A (temporary) world manager for Folia'
 
 repositories {
     mavenCentral()
+    maven {
+        name = "folia-inquistors-repo"
+        url = "https://github.com/Folia-Inquisitors/FoliaDevBundle/raw/gh-pages/"
+    }
     maven {
         name = "papermc-repo"
         url = "https://repo.papermc.io/repository/maven-public/"
@@ -20,10 +22,10 @@ repositories {
         name = "sonatype"
         url = "https://oss.sonatype.org/content/groups/public/"
     }
-}
-
-paperweight {
-    reobfArtifactConfiguration.set(ReobfArtifactConfiguration.getMOJANG_PRODUCTION())
+    maven {
+        name = "jitpack"
+        url = "https://jitpack.io"
+    }
 }
 
 dependencies {
@@ -56,6 +58,11 @@ shadowJar {
     relocate("me.hsgamer.hscore", "me.hsgamer.morefoworld.core")
     relocate("io.github.projectunified.minelib", "me.hsgamer.morefoworld.minelib")
     minimize()
+    manifest {
+        attributes(
+                'paperweight-mappings-namespace': 'mojang'
+        )
+    }
 }
 
 def targetJavaVersion = 21
