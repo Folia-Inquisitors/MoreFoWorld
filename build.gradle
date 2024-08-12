@@ -1,3 +1,5 @@
+import io.papermc.paperweight.userdev.ReobfArtifactConfiguration
+
 plugins {
     id 'java'
     id("io.papermc.paperweight.userdev") version "1.7.1"
@@ -26,6 +28,10 @@ repositories {
         name = "jitpack"
         url = "https://jitpack.io"
     }
+}
+
+paperweight {
+    paperweight.setReobfArtifactConfiguration(ReobfArtifactConfiguration.getMOJANG_PRODUCTION())
 }
 
 dependencies {
@@ -58,11 +64,6 @@ shadowJar {
     relocate("me.hsgamer.hscore", "me.hsgamer.morefoworld.core")
     relocate("io.github.projectunified.minelib", "me.hsgamer.morefoworld.minelib")
     minimize()
-    manifest {
-        attributes(
-                'paperweight-mappings-namespace': 'mojang'
-        )
-    }
 }
 
 def targetJavaVersion = 21
