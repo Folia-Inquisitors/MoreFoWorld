@@ -7,7 +7,7 @@ plugins {
 }
 
 group = 'me.hsgamer'
-version = '1.7.0'
+version = '1.7.1'
 description = 'A (temporary) world manager for Folia'
 
 repositories {
