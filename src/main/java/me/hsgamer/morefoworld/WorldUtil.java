@@ -14,7 +14,6 @@ import net.minecraft.server.WorldLoader;
 import net.minecraft.server.dedicated.DedicatedServer;
 import net.minecraft.server.dedicated.DedicatedServerProperties;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.TicketType;
 import net.minecraft.util.GsonHelper;
 import net.minecraft.util.datafix.DataFixers;
 import net.minecraft.world.Difficulty;
@@ -64,7 +63,7 @@ public final class WorldUtil {
         if (name.equals(levelName)) {
             return Feedback.WORLD_DEFAULT.toFeedbackWorld();
         } else if (name.equals(levelName + "_nether")) {
-            if (console.isNetherEnabled()) {
+            if (craftServer.getAllowNether()) {
                 return Feedback.WORLD_DEFAULT.toFeedbackWorld();
             }
             worldKey = net.minecraft.world.level.Level.NETHER;
@@ -199,7 +198,7 @@ public final class WorldUtil {
         }
 
         if (worldKey == null) {
-            worldKey = ResourceKey.create(Registries.DIMENSION, new net.minecraft.resources.ResourceLocation(creator.key().getNamespace().toLowerCase(java.util.Locale.ENGLISH), creator.key().getKey().toLowerCase(java.util.Locale.ENGLISH))); // Paper
+            worldKey = ResourceKey.create(Registries.DIMENSION, actualDimension.location()); // Paper
         }
 
         if (creator.keepSpawnLoaded() == TriState.FALSE) {
@@ -216,7 +215,7 @@ public final class WorldUtil {
             for (int currZ = -loadRegionRadius; currZ <= loadRegionRadius; ++currZ) {
                 ChunkPos pos = new ChunkPos(currX, currZ);
                 internal.chunkSource.addTicketAtLevel(
-                        TicketType.UNKNOWN, pos, io.papermc.paper.chunk.system.scheduling.ChunkHolderManager.MAX_TICKET_LEVEL, pos
+                        net.minecraft.server.level.TicketType.UNKNOWN, pos, ca.spottedleaf.moonrise.patches.chunk_system.scheduling.ChunkHolderManager.MAX_TICKET_LEVEL, pos
                 );
             }
         }
