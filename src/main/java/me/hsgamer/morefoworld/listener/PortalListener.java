@@ -135,6 +135,13 @@ public class PortalListener extends ListenerComponent {
         event.setCancelled(true);
 
         entity.getScheduler().execute(plugin, () -> {
+            Block currentBlock = entity.getLocation().getBlock();
+            if (currentBlock.getType() != blockTypeInside) {
+                debug.debug("The entity is not in the portal");
+                portalTeleportCache.remove(entity.getUniqueId());
+                return;
+            }
+
             World.Environment fromEnvironment = from.getWorld().getEnvironment();
             World.Environment toEnvironment = toWorld.getEnvironment();
             Location to;
