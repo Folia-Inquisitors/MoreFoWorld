@@ -78,14 +78,6 @@ public class PortalListener extends ListenerComponent {
         worldOptional.ifPresent(world -> {
             Location clone = to.clone();
             clone.setWorld(world);
-
-            event.setCancelled(true);
-            if (world.getEnvironment() == World.Environment.THE_END) {
-                teleportToEnd(event.getPlayer(), clone);
-                debug.debug("Teleport to " + clone);
-            } else {
-                event.getPlayer().teleportAsync(clone).thenRun(() -> debug.debug("Teleported to " + clone));
-            }
         });
     }
 
@@ -125,56 +117,32 @@ public class PortalListener extends ListenerComponent {
         Material blockTypeInside = block.getType();
         Location from = entity.getLocation();
 
-        if (!blockTypeInside.equals(Material.NETHER_PORTAL) && !blockTypeInside.equals(Material.END_PORTAL)) {
-            return;
-        }
-
-        debug.debug("Preparing for teleportation...");
-
-        event.setCancelled(true);
-
         if (portalTeleportCache.containsKey(entity.getUniqueId())) {
             debug.debug("The entity is being teleported");
             return;
         }
 
+        Optional<World> toWorldOptional = switch (blockTypeInside) {
+            case NETHER_PORTAL -> plugin.get(PortalConfig.class).getWorldFromNetherPortal(from.getWorld());
+            case END_PORTAL -> plugin.get(PortalConfig.class).getWorldFromEndPortal(from.getWorld());
+            default -> Optional.empty();
+        };
+        if (toWorldOptional.isEmpty()) return;
+        World toWorld = toWorldOptional.get();
+
         portalTeleportCache.put(entity.getUniqueId(), blockTypeInside);
+
+        event.setCancelled(true);
+
         entity.getScheduler().execute(plugin, () -> {
-            switch (blockTypeInside) {
-                case NETHER_PORTAL -> {
-
-                    debug.debug("Nether portal");
-
-                    Optional<World> worldOptional = plugin.get(PortalConfig.class).getWorldFromNetherPortal(from.getWorld());
-
-                    worldOptional.ifPresent(world -> {
-                        Location clone = from.clone();
-                        clone.setWorld(world);
-                        if (world.getEnvironment() == World.Environment.THE_END) {
-                            teleportToEnd(event.getEntity(), clone);
-                            debug.debug("Teleport to " + clone);
-                        } else {
-                            event.getEntity().teleportAsync(clone).thenRun(() -> debug.debug("Teleported to " + clone));
-                        }
-                    });
-                }
-                case END_PORTAL -> {
-
-                    debug.debug("End portal");
-
-                    Optional<World> worldOptional = plugin.get(PortalConfig.class).getWorldFromEndPortal(from.getWorld());
-
-                    worldOptional.ifPresent(world -> {
-                        Location clone = from.clone();
-                        clone.setWorld(world);
-                        if (world.getEnvironment() == World.Environment.THE_END) {
-                            teleportToEnd(event.getEntity(), clone);
-                            debug.debug("Teleport to " + clone);
-                        } else {
-                            event.getEntity().teleportAsync(clone).thenRun(() -> debug.debug("Teleported to " + clone));
-                        }
-                    });
-                }
+            if (toWorld.getEnvironment() == World.Environment.THE_END) {
+                teleportToEnd(entity, new Location(toWorld, 0.5, 64, 0.5));
+            } else if (toWorld.getEnvironment() == World.Environment.NETHER) {
+                Location to = new Location(toWorld, from.getX() / 8, from.getY(), from.getZ() / 8);
+                entity.teleportAsync(to).thenRun(() -> debug.debug("Teleported to " + to));
+            } else {
+                Location to = new Location(toWorld, from.getX(), from.getY(), from.getZ());
+                entity.teleportAsync(to).thenRun(() -> debug.debug("Teleported to " + to));
             }
             portalTeleportCache.remove(entity.getUniqueId());
         }, null, 1L);
