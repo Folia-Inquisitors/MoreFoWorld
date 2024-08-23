@@ -135,15 +135,32 @@ public class PortalListener extends ListenerComponent {
         event.setCancelled(true);
 
         entity.getScheduler().execute(plugin, () -> {
-            if (toWorld.getEnvironment() == World.Environment.THE_END) {
-                teleportToEnd(entity, new Location(toWorld, 0.5, 64, 0.5));
-            } else if (toWorld.getEnvironment() == World.Environment.NETHER) {
-                Location to = new Location(toWorld, from.getX() / 8, from.getY(), from.getZ() / 8);
-                entity.teleportAsync(to).thenRun(() -> debug.debug("Teleported to " + to));
+            World.Environment fromEnvironment = from.getWorld().getEnvironment();
+            World.Environment toEnvironment = toWorld.getEnvironment();
+            Location to;
+            if (toEnvironment == World.Environment.THE_END) {
+                to = toWorld.getSpawnLocation();
+            } else if (fromEnvironment == World.Environment.NORMAL && toEnvironment == World.Environment.NETHER) {
+                to = from.clone();
+                to.setWorld(toWorld);
+                to.setX(to.getX() / 8);
+                to.setZ(to.getZ() / 8);
+            } else if (fromEnvironment == World.Environment.NETHER && toEnvironment == World.Environment.NORMAL) {
+                to = from.clone();
+                to.setWorld(toWorld);
+                to.setX(to.getX() * 8);
+                to.setZ(to.getZ() * 8);
             } else {
-                Location to = new Location(toWorld, from.getX(), from.getY(), from.getZ());
-                entity.teleportAsync(to).thenRun(() -> debug.debug("Teleported to " + to));
+                to = from.clone();
+                to.setWorld(toWorld);
             }
+
+            switch (toEnvironment) {
+                case THE_END -> teleportToEnd(entity, to);
+                case NETHER -> entity.teleportAsync(to).thenRun(() -> debug.debug("Teleported to " + to)); // TODO: Add the portal block
+                default -> entity.teleportAsync(to).thenRun(() -> debug.debug("Teleported to " + to));
+            }
+
             portalTeleportCache.remove(entity.getUniqueId());
         }, null, 1L);
     }
