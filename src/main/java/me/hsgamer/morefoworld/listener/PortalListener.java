@@ -14,14 +14,16 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.entity.EntityPortalEvent;
 import org.bukkit.event.player.PlayerPortalEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
+import org.bukkit.util.Vector;
 
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class PortalListener extends ListenerComponent {
-    private DebugComponent debug;
     private final ConcurrentHashMap<UUID, Material> portalTeleportCache = new ConcurrentHashMap<>();
+    private DebugComponent debug;
 
     public PortalListener(BasePlugin plugin) {
         super(plugin);
@@ -43,8 +45,8 @@ public class PortalListener extends ListenerComponent {
         });
     }
 
-    private void teleportToEnd(Entity entity, Location location) {
-        Bukkit.getRegionScheduler().execute(plugin, location, () -> {
+    private CompletableFuture<Void> constructEndPlatform(Location location) {
+        return CompletableFuture.runAsync(() -> {
             Block block = location.getBlock();
             for (int x = block.getX() - 2; x <= block.getX() + 2; x++) {
                 for (int z = block.getZ() - 2; z <= block.getZ() + 2; z++) {
@@ -60,8 +62,23 @@ public class PortalListener extends ListenerComponent {
                     }
                 }
             }
-            entity.teleportAsync(location).thenRun(() -> debug.debug("Teleported to " + location));
-        });
+        }, runnable -> Bukkit.getRegionScheduler().execute(plugin, location, runnable));
+    }
+
+    private CompletableFuture<Void> constructNetherPortal(Location location) {
+        return CompletableFuture.runAsync(() -> {
+            // TODO: Construct the nether portal
+        }, runnable -> Bukkit.getRegionScheduler().execute(plugin, location, runnable));
+    }
+
+    private CompletableFuture<Boolean> teleport(Entity entity, Location location, boolean runInScheduler) {
+        if (runInScheduler) {
+            CompletableFuture<Boolean> future = new CompletableFuture<>();
+            entity.getScheduler().execute(plugin, () -> entity.teleportAsync(location).thenAccept(future::complete), null, 1L);
+            return future;
+        } else {
+            return entity.teleportAsync(location);
+        }
     }
 
     @EventHandler
@@ -101,12 +118,13 @@ public class PortalListener extends ListenerComponent {
             clone.setWorld(world);
 
             event.setCancelled(true);
+            CompletableFuture<Void> future = CompletableFuture.completedFuture(null);
             if (world.getEnvironment() == World.Environment.THE_END) {
-                teleportToEnd(event.getEntity(), clone);
-                debug.debug("Teleport to " + clone);
-            } else {
-                event.getEntity().teleportAsync(clone).thenRun(() -> debug.debug("Teleported to " + clone));
+                future = constructEndPlatform(clone);
             }
+            future
+                    .thenCompose(aVoid -> teleport(event.getEntity(), clone, true))
+                    .thenRun(() -> debug.debug("Teleported to " + clone));
         });
     }
 
@@ -163,9 +181,17 @@ public class PortalListener extends ListenerComponent {
             }
 
             switch (toEnvironment) {
-                case THE_END -> teleportToEnd(entity, to);
-                case NETHER -> entity.teleportAsync(to).thenRun(() -> debug.debug("Teleported to " + to)); // TODO: Add the portal block
-                default -> entity.teleportAsync(to).thenRun(() -> debug.debug("Teleported to " + to));
+                case THE_END -> {
+                    constructEndPlatform(to)
+                            .thenCompose(aVoid -> teleport(entity, to, false))
+                            .thenRun(() -> debug.debug("Teleported to " + to));
+                }
+                case NETHER -> {
+                    constructNetherPortal(to)
+                            .thenCompose(aVoid -> teleport(entity, to, false))
+                            .thenRun(() -> debug.debug("Teleported to " + to));
+                }
+                default -> teleport(entity, to, false).thenRun(() -> debug.debug("Teleported to " + to));
             }
 
             portalTeleportCache.remove(entity.getUniqueId());
