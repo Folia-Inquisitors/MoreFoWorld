@@ -21,12 +21,18 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class PortalListener extends ListenerComponent {
+public class PortalListener implements ListenerComponent {
     private final ConcurrentHashMap<UUID, Material> portalTeleportCache = new ConcurrentHashMap<>();
+    private final BasePlugin plugin;
     private DebugComponent debug;
 
     public PortalListener(BasePlugin plugin) {
-        super(plugin);
+        this.plugin = plugin;
+    }
+
+    @Override
+    public BasePlugin getPlugin() {
+        return plugin;
     }
 
     @Override

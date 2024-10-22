@@ -1,6 +1,6 @@
 package me.hsgamer.morefoworld.command.sub;
 
-import me.hsgamer.hscore.bukkit.command.sub.SubCommand;
+import io.github.projectunified.minelib.util.subcommand.SubCommand;
 import me.hsgamer.hscore.bukkit.utils.MessageUtils;
 import me.hsgamer.morefoworld.Permissions;
 import org.bukkit.Bukkit;

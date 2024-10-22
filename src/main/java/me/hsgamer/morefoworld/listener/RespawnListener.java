@@ -10,11 +10,17 @@ import org.bukkit.event.player.PlayerRespawnEvent;
 
 import java.util.Optional;
 
-public class RespawnListener extends ListenerComponent {
+public class RespawnListener implements ListenerComponent {
+    private final BasePlugin plugin;
     private DebugComponent debug;
 
     public RespawnListener(BasePlugin plugin) {
-        super(plugin);
+        this.plugin = plugin;
+    }
+
+    @Override
+    public BasePlugin getPlugin() {
+        return plugin;
     }
 
     @Override

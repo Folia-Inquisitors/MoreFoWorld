@@ -6,9 +6,16 @@ import me.hsgamer.morefoworld.config.SpawnConfig;
 import org.bukkit.event.EventHandler;
 import org.spigotmc.event.player.PlayerSpawnLocationEvent;
 
-public class SpawnListener extends ListenerComponent {
+public class SpawnListener implements ListenerComponent {
+    private final BasePlugin plugin;
+
     public SpawnListener(BasePlugin plugin) {
-        super(plugin);
+        this.plugin = plugin;
+    }
+
+    @Override
+    public BasePlugin getPlugin() {
+        return plugin;
     }
 
     @EventHandler
