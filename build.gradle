@@ -15,6 +15,13 @@ if (snapshot) {
     version = version + "-SNAPSHOT"
 }
 
+def versionFile = file("version")
+if (!versionFile.exists()) {
+    throw new GradleException("version file not found")
+}
+def serverVersion = versionFile.text.trim()
+def majorServerVersion = serverVersion.count('.') > 1 ? serverVersion.substring(0, serverVersion.lastIndexOf('.')) : serverVersion
+
 repositories {
     mavenCentral()
     maven {
@@ -40,12 +47,7 @@ paperweight {
 }
 
 dependencies {
-    def versionFile = file("version")
-    if (!versionFile.exists()) {
-        throw new GradleException("version file not found")
-    }
-    def version = versionFile.text.trim()
-    paperweight.foliaDevBundle("$version-R0.1-SNAPSHOT")
+    paperweight.foliaDevBundle("$serverVersion-R0.1-SNAPSHOT")
 
     def core = "4.5.7"
     implementation "me.hsgamer:hscore-bukkit-config:$core"
@@ -91,7 +93,7 @@ processResources {
     def props = [
             version: version,
             name: project.name,
-            apiVersion: "1.21",
+            apiVersion: majorServerVersion,
             description: project.description
     ]
     inputs.properties props
