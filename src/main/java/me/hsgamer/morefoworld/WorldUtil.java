@@ -224,6 +224,7 @@ public final class WorldUtil {
 
         internal.setSpawnSettings(true, true);
 
+        console.prepareLevels(internal.getChunkSource().chunkMap.progressListener, internal);
         io.papermc.paper.threadedregions.RegionizedServer.getInstance().addWorld(internal);
 
         Bukkit.getPluginManager().callEvent(new WorldLoadEvent(internal.getWorld())); // Call Event
