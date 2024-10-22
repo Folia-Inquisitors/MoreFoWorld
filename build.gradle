@@ -7,8 +7,13 @@ plugins {
 }
 
 group = 'me.hsgamer'
-version = '1.7.2'
+version = '1.8.0'
+def snapshot = true
 description = 'A (temporary) world manager for Folia'
+
+if (snapshot) {
+    version = version + "-SNAPSHOT"
+}
 
 repositories {
     mavenCentral()
