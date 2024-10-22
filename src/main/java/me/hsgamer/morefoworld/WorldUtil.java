@@ -39,6 +39,7 @@ import org.bukkit.WorldCreator;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.craftbukkit.generator.CraftWorldInfo;
+import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.generator.BiomeProvider;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.generator.WorldInfo;
@@ -222,6 +223,10 @@ public final class WorldUtil {
         }
 
         internal.setSpawnSettings(true, true);
+
+        io.papermc.paper.threadedregions.RegionizedServer.getInstance().addWorld(internal);
+
+        Bukkit.getPluginManager().callEvent(new WorldLoadEvent(internal.getWorld())); // Call Event
 
         return Feedback.SUCCESS.toFeedbackWorld(internal.getWorld());
     }
