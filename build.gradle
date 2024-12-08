@@ -2,13 +2,13 @@ import io.papermc.paperweight.userdev.ReobfArtifactConfiguration
 
 plugins {
     id 'java'
-    id("io.papermc.paperweight.userdev") version "1.7.1"
-    id 'io.github.goooler.shadow' version '8.1.7'
+    id("io.papermc.paperweight.userdev") version "1.7.7"
+    id 'com.gradleup.shadow' version '8.3.5'
 }
 
 group = 'me.hsgamer'
-version = '1.8.0'
-def snapshot = false
+version = '1.9.0'
+def snapshot = true
 description = 'A (temporary) world manager for Folia'
 
 if (snapshot) {
@@ -26,7 +26,7 @@ repositories {
     mavenCentral()
     maven {
         name = "folia-inquistors-repo"
-        url = "https://github.com/Folia-Inquisitors/FoliaDevBundle/raw/gh-pages/"
+        url = "https://folia-inquisitors.github.io/FoliaDevBundle/"
     }
     maven {
         name = "papermc-repo"
