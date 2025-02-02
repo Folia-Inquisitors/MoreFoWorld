@@ -1,39 +1,33 @@
 package me.hsgamer.morefoworld.config;
 
-import com.google.common.collect.BiMap;
-import com.google.common.collect.ImmutableBiMap;
 import me.hsgamer.hscore.config.annotation.ConfigPath;
 import me.hsgamer.hscore.config.annotation.StickyValue;
-import me.hsgamer.morefoworld.config.converter.WorldBiMapConverter;
+import me.hsgamer.morefoworld.config.converter.WorldMapConverter;
 import org.bukkit.World;
 
+import java.util.Map;
 import java.util.Optional;
 
 public interface RespawnConfig {
-    @ConfigPath(value = "worlds", converter = WorldBiMapConverter.class)
+    @ConfigPath(value = "worlds", converter = WorldMapConverter.class)
     @StickyValue
-    default BiMap<String, String> getWorlds() {
-        return ImmutableBiMap.of();
+    default Map<String, String> getWorlds() {
+        return Map.of();
     }
 
-    void setWorlds(BiMap<String, String> worlds);
+    void setWorlds(Map<String, String> worlds);
 
     default void linkWorld(String fromWorld, String toWorld) {
-        BiMap<String, String> netherPortals = getWorlds();
-        netherPortals.put(fromWorld, toWorld);
-        setWorlds(netherPortals);
+        Map<String, String> worldMap = getWorlds();
+        worldMap.put(fromWorld, toWorld);
+        setWorlds(worldMap);
     }
 
     default boolean unlinkWorld(String world) {
-        BiMap<String, String> netherPortals = getWorlds();
-        if (netherPortals.containsKey(world)) {
-            netherPortals.remove(world);
-        } else if (netherPortals.containsValue(world)) {
-            netherPortals.inverse().remove(world);
-        } else {
-            return false;
-        }
-        setWorlds(netherPortals);
+        Map<String, String> linkMap = getWorlds();
+        if (!linkMap.containsKey(world)) return false;
+        linkMap.remove(world);
+        setWorlds(linkMap);
         return true;
     }
 
