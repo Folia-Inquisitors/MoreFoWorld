@@ -45,7 +45,7 @@ public class RespawnListener implements ListenerComponent {
         debug.debug("Set Respawn to " + respawnWorld);
 
         RespawnRunnable runnable = new RespawnRunnable(player, respawnLocation);
-        player.getScheduler().runAtFixedRate(plugin, t -> runnable.run(), null, 0, 1);
+        player.getScheduler().runAtFixedRate(plugin, t -> runnable.run(), null, 1, 1);
         debug.debug("Scheduled Respawn");
     }
 
