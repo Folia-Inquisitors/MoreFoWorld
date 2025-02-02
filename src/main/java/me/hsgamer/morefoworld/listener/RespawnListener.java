@@ -4,7 +4,6 @@ import io.github.projectunified.minelib.plugin.base.BasePlugin;
 import io.github.projectunified.minelib.plugin.listener.ListenerComponent;
 import me.hsgamer.morefoworld.DebugComponent;
 import me.hsgamer.morefoworld.config.RespawnConfig;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -44,24 +43,12 @@ public class RespawnListener implements ListenerComponent {
         Location respawnLocation = respawnWorld.getSpawnLocation();
         debug.debug("Set Respawn to " + respawnWorld);
 
-        RespawnRunnable runnable = new RespawnRunnable(player, respawnLocation);
-        player.getScheduler().runAtFixedRate(plugin, t -> runnable.run(), null, 1, 1);
-        debug.debug("Scheduled Respawn");
-    }
-
-    private class RespawnRunnable implements Runnable {
-        private final Player player;
-        private final Location location;
-
-        private RespawnRunnable(Player player, Location location) {
-            this.player = player;
-            this.location = location;
-        }
-
-        @Override
-        public void run() {
+        player.getScheduler().runAtFixedRate(plugin, task -> {
             if (player.isDead()) return;
-            Bukkit.getRegionScheduler().execute(plugin, location, () -> player.teleportAsync(location));
-        }
+            task.cancel();
+            player.teleportAsync(respawnLocation);
+            debug.debug("Respawned: " + player.getName() + " at " + respawnLocation);
+        }, null, 1, 1);
+        debug.debug("Scheduled Respawn");
     }
 }
