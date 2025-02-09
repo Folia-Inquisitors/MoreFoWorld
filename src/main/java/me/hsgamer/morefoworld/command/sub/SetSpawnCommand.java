@@ -21,7 +21,11 @@ public class SetSpawnCommand extends SubCommand {
     @Override
     public void onSubCommand(@NotNull CommandSender sender, @NotNull String label, @NotNull String... args) {
         Player player = (Player) sender;
-        plugin.get(SpawnConfig.class).setPosition(WorldPosition.fromLocation(player.getLocation()));
+        SpawnConfig spawnConfig = plugin.get(SpawnConfig.class);
+        spawnConfig.setPosition(WorldPosition.fromLocation(player.getLocation()));
+        if (!spawnConfig.isEnabled()) {
+            spawnConfig.setEnabled(true);
+        }
         MessageUtils.sendMessage(player, "&aSpawn location set");
     }
 }

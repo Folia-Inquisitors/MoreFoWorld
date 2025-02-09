@@ -18,6 +18,8 @@ public interface SpawnConfig {
         return false;
     }
 
+    void setEnabled(boolean enabled);
+
     @ConfigPath("first-join")
     default boolean isFirstJoin() {
         return false;
