@@ -3,6 +3,6 @@ version: '${version}'
 main: me.hsgamer.morefoworld.MoreFoWorld
 api-version: '${apiVersion}'
 load: POSTWORLD
-authors: [HSGamer]
+authors: [ HSGamer ]
 description: '${description}'
 folia-supported: true

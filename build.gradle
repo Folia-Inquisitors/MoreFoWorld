@@ -91,9 +91,9 @@ tasks.withType(JavaCompile).configureEach {
 
 processResources {
     def props = [
-            version: version,
-            name: project.name,
-            apiVersion: majorServerVersion,
+            version    : version,
+            name       : project.name,
+            apiVersion : majorServerVersion,
             description: project.description
     ]
     inputs.properties props
