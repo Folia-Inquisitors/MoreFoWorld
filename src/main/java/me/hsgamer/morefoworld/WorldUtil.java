@@ -239,13 +239,7 @@ public final class WorldUtil {
     }
 
     public static void applyWorldSpawn(Location location) {
-        World world = location.getWorld();
-        Location spawnLocation = world.getSpawnLocation();
-        spawnLocation.setX(location.getX());
-        spawnLocation.setY(location.getY());
-        spawnLocation.setZ(location.getZ());
-        spawnLocation.setYaw(location.getYaw());
-        spawnLocation.setPitch(location.getPitch());
+        location.getWorld().setSpawnLocation(location);
     }
 
     public enum Feedback {
