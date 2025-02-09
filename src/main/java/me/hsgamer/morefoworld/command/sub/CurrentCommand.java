@@ -36,7 +36,7 @@ public class CurrentCommand extends SubCommand {
             return;
         }
 
-        MessageUtils.sendMessage(sender, "&aThe current world of &e" + player.getName() + "&a is &e" + player.getWorld().getName());
+        MessageUtils.sendMessage(sender, "&aThe current world of &e" + player.getName() + " &a is &e" + player.getWorld().getName());
     }
 
     @Override
