@@ -4,12 +4,13 @@ A (temporary) world manager for Folia
 
 _Why does this even exist ??_
 
-## Not Working
+## Hacky Patch
+
+> These are the features that are currently not supported by Folia, but work on MoreFoWorld with some hacks.
+> They don't guarantee to work similarly to Vanilla Minecraft. Use them at your own risk.
 
 - Respawn World
 - Portal Teleporting
-
-> Because the current Folia builds don't support them. If one of them does get supported, the related commands will be working.
 
 ## Commands & Permissions
 
@@ -24,3 +25,4 @@ _Why does this even exist ??_
 | `/mfw linkrespawn <from> <to>`                        | `morefoworld.linkrespawn`     | Link Respawn points between `from` and `to`        |
 | `/mfw unlinkrespawn <world>`                          | `morefoworld.linkrespawn`     | Un-link Respawn points of a `world`                |
 | `/mfw setspawn`                                       | `morefoworld.setspawn`        | Set the spawn point when a player joins the server |
+| `/mfw setworldspawn`                                  | `morefoworld.setworldspawn`   | Set the spawn point of the current world           |
