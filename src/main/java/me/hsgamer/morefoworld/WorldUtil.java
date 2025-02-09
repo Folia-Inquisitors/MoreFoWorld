@@ -32,10 +32,7 @@ import net.minecraft.world.level.storage.LevelDataAndDimensions;
 import net.minecraft.world.level.storage.LevelStorageSource;
 import net.minecraft.world.level.storage.PrimaryLevelData;
 import net.minecraft.world.level.validation.ContentValidationException;
-import org.bukkit.Bukkit;
-import org.bukkit.GameMode;
-import org.bukkit.World;
-import org.bukkit.WorldCreator;
+import org.bukkit.*;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.craftbukkit.generator.CraftWorldInfo;
@@ -239,6 +236,16 @@ public final class WorldUtil {
             case ADVENTURE -> GameType.ADVENTURE;
             case SPECTATOR -> GameType.SPECTATOR;
         };
+    }
+
+    public static void applyWorldSpawn(Location location) {
+        World world = location.getWorld();
+        Location spawnLocation = world.getSpawnLocation();
+        spawnLocation.setX(location.getX());
+        spawnLocation.setY(location.getY());
+        spawnLocation.setZ(location.getZ());
+        spawnLocation.setYaw(location.getYaw());
+        spawnLocation.setPitch(location.getPitch());
     }
 
     public enum Feedback {

@@ -23,6 +23,7 @@ public class MainCommand extends Command {
         subCommandManager.registerSubcommand(new LinkRespawnCommand(plugin));
         subCommandManager.registerSubcommand(new UnlinkRespawnCommand(plugin));
         subCommandManager.registerSubcommand(new SetSpawnCommand(plugin));
+        subCommandManager.registerSubcommand(new SetWorldSpawnCommand(plugin));
     }
 
     @Override
