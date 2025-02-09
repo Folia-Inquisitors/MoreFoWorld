@@ -4,6 +4,7 @@ import io.github.projectunified.minelib.plugin.base.BasePlugin;
 import io.github.projectunified.minelib.plugin.listener.ListenerComponent;
 import me.hsgamer.morefoworld.DebugComponent;
 import me.hsgamer.morefoworld.config.RespawnConfig;
+import me.hsgamer.morefoworld.config.WorldSpawnConfig;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -40,7 +41,7 @@ public class RespawnListener implements ListenerComponent {
         Optional<World> optionalRespawnWorld = plugin.get(RespawnConfig.class).getRespawnWorld(world);
         if (optionalRespawnWorld.isEmpty()) return;
         World respawnWorld = optionalRespawnWorld.get();
-        Location respawnLocation = respawnWorld.getSpawnLocation();
+        Location respawnLocation = plugin.get(WorldSpawnConfig.class).getSpawn(world).map(position -> position.toLocation(world)).orElseGet(world::getSpawnLocation);
         debug.debug("Set Respawn to " + respawnWorld);
 
         player.getScheduler().runAtFixedRate(plugin, task -> {
