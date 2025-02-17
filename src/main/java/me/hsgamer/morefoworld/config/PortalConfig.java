@@ -1,6 +1,7 @@
 package me.hsgamer.morefoworld.config;
 
 import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableBiMap;
 import me.hsgamer.hscore.config.annotation.ConfigPath;
 import me.hsgamer.hscore.config.annotation.StickyValue;
@@ -13,7 +14,7 @@ public interface PortalConfig {
     @ConfigPath(value = "nether", converter = WorldBiMapConverter.class)
     @StickyValue
     default BiMap<String, String> getNetherPortals() {
-        return ImmutableBiMap.of();
+        return HashBiMap.create();
     }
 
     void setNetherPortals(BiMap<String, String> netherPortals);

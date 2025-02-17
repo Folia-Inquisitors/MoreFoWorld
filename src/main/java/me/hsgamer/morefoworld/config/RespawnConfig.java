@@ -5,6 +5,7 @@ import me.hsgamer.hscore.config.annotation.StickyValue;
 import me.hsgamer.morefoworld.config.converter.WorldMapConverter;
 import org.bukkit.World;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -12,7 +13,7 @@ public interface RespawnConfig {
     @ConfigPath(value = "worlds", converter = WorldMapConverter.class)
     @StickyValue
     default Map<String, String> getWorlds() {
-        return Map.of();
+        return new HashMap<>();
     }
 
     void setWorlds(Map<String, String> worlds);
