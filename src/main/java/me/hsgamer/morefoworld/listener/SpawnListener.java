@@ -24,11 +24,11 @@ public class SpawnListener implements ListenerComponent {
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         SpawnConfig spawnConfig = plugin.get(SpawnConfig.class);
+        Player player = event.getPlayer();
 
         if (!spawnConfig.isEnabled()) return;
-        if (spawnConfig.isFirstJoin() && !event.getPlayer().hasPlayedBefore()) return;
+        if (spawnConfig.isFirstJoin() && player.hasPlayedBefore()) return;
 
-        Player player = event.getPlayer();
         Location location = spawnConfig.getPosition().toLocation();
         Bukkit.getRegionScheduler().execute(plugin, location, () -> player.teleportAsync(location));
     }
