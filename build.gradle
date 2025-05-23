@@ -8,7 +8,7 @@ plugins {
 
 group = 'me.hsgamer'
 version = '1.11.0'
-def snapshot = true
+def snapshot = false
 description = 'A (temporary) world manager for Folia'
 
 if (snapshot) {
