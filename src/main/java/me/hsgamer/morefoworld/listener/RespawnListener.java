@@ -41,7 +41,7 @@ public class RespawnListener implements ListenerComponent {
         Optional<World> optionalRespawnWorld = plugin.get(RespawnConfig.class).getRespawnWorld(world);
         if (optionalRespawnWorld.isEmpty()) return;
         World respawnWorld = optionalRespawnWorld.get();
-        Location respawnLocation = plugin.get(WorldSpawnConfig.class).getSpawn(world).map(position -> position.toLocation(world)).orElseGet(world::getSpawnLocation);
+        Location respawnLocation = plugin.get(WorldSpawnConfig.class).getSpawn(respawnWorld).map(position -> position.toLocation(respawnWorld)).orElseGet(respawnWorld::getSpawnLocation);
         debug.debug("Set Respawn to " + respawnWorld);
 
         player.getScheduler().runAtFixedRate(plugin, task -> {
