@@ -3,13 +3,13 @@ package me.hsgamer.morefoworld;
 import com.google.common.collect.ImmutableList;
 import com.mojang.serialization.Dynamic;
 import com.mojang.serialization.Lifecycle;
-import net.kyori.adventure.util.TriState;
+import io.papermc.paper.world.PaperWorldLoader;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.NbtException;
 import net.minecraft.nbt.ReportedNbtException;
+import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.WorldLoader;
 import net.minecraft.server.dedicated.DedicatedServer;
@@ -20,8 +20,10 @@ import net.minecraft.util.datafix.DataFixers;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.entity.ai.village.VillageSiege;
 import net.minecraft.world.entity.npc.CatSpawner;
-import net.minecraft.world.entity.npc.WanderingTraderSpawner;
-import net.minecraft.world.level.*;
+import net.minecraft.world.entity.npc.wanderingtrader.WanderingTraderSpawner;
+import net.minecraft.world.level.CustomSpawner;
+import net.minecraft.world.level.GameType;
+import net.minecraft.world.level.LevelSettings;
 import net.minecraft.world.level.biome.BiomeManager;
 import net.minecraft.world.level.dimension.LevelStem;
 import net.minecraft.world.level.levelgen.PatrolSpawner;
@@ -36,7 +38,6 @@ import org.bukkit.*;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.craftbukkit.generator.CraftWorldInfo;
-import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.generator.BiomeProvider;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.generator.WorldInfo;
@@ -47,8 +48,9 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * @see net.minecraft.server.MinecraftServer#loadWorld0(String)
+ * @see net.minecraft.server.MinecraftServer#createLevel(LevelStem, PaperWorldLoader.WorldLoadingInfo, LevelStorageSource.LevelStorageAccess, PrimaryLevelData)
  * @see CraftServer#createWorld(WorldCreator)
+ * @see DedicatedServer#initServer()
  */
 public final class WorldUtil {
     public static FeedbackWorld addWorld(WorldCreator creator) {
@@ -152,7 +154,7 @@ public final class WorldUtil {
         boolean hardcore = creator.hardcore();
 
         PrimaryLevelData primaryLevelData;
-        WorldLoader.DataLoadContext context = console.worldLoader;
+        WorldLoader.DataLoadContext context = console.worldLoaderContext;
         RegistryAccess.Frozen registryAccess = context.datapackDimensions();
         net.minecraft.core.Registry<LevelStem> contextLevelStemRegistry = registryAccess.lookupOrThrow(Registries.LEVEL_STEM);
         if (dataTag != null) {
@@ -173,7 +175,7 @@ public final class WorldUtil {
                     hardcore,
                     Difficulty.EASY,
                     false,
-                    new GameRules(context.dataConfiguration().enabledFeatures()),
+                    new net.minecraft.world.level.gamerules.GameRules(context.dataConfiguration().enabledFeatures()),
                     context.dataConfiguration()
             );
             worldDimensions = properties.create(context.datapackWorldgen());
@@ -207,12 +209,9 @@ public final class WorldUtil {
         }
 
         if (worldKey == null) {
-            worldKey = ResourceKey.create(Registries.DIMENSION, ResourceLocation.fromNamespaceAndPath(creator.key().namespace(), creator.key().value()));
+            worldKey = ResourceKey.create(Registries.DIMENSION, Identifier.fromNamespaceAndPath(creator.key().namespace(), creator.key().value()));
         }
 
-        if (creator.keepSpawnLoaded() == TriState.FALSE) {
-            primaryLevelData.getGameRules().getRule(GameRules.RULE_SPAWN_CHUNK_RADIUS).set(0, null);
-        }
         ServerLevel serverLevel = new ServerLevel(
                 console,
                 console.executor,
@@ -220,7 +219,6 @@ public final class WorldUtil {
                 primaryLevelData,
                 worldKey,
                 customStem,
-                console.progressListenerFactory.create(primaryLevelData.getGameRules().getInt(GameRules.RULE_SPAWN_CHUNK_RADIUS)),
                 primaryLevelData.isDebugWorld(),
                 i,
                 creator.environment() == World.Environment.NORMAL ? list : ImmutableList.of(),
@@ -232,24 +230,11 @@ public final class WorldUtil {
         );
 
         console.addLevel(serverLevel);
-
-        int loadRegionRadius = 1024 >> 4;
-        serverLevel.randomSpawnSelection = new ChunkPos(serverLevel.getChunkSource().randomState().sampler().findSpawnPosition());
-        for (int currX = -loadRegionRadius; currX <= loadRegionRadius; ++currX) {
-            for (int currZ = -loadRegionRadius; currZ <= loadRegionRadius; ++currZ) {
-                ChunkPos pos = new ChunkPos(currX, currZ);
-                serverLevel.moonrise$getChunkTaskScheduler().chunkHolderManager.addTicketAtLevel(
-                        net.minecraft.server.level.TicketType.UNKNOWN, pos, ca.spottedleaf.moonrise.patches.chunk_system.scheduling.ChunkHolderManager.MAX_TICKET_LEVEL, null
-                );
-            }
-        }
+        console.initWorld(serverLevel, primaryLevelData, primaryLevelData.worldGenOptions());
 
         serverLevel.setSpawnSettings(true);
 
-        console.prepareLevels(serverLevel.getChunkSource().chunkMap.progressListener, serverLevel);
-        io.papermc.paper.threadedregions.RegionizedServer.getInstance().addWorld(serverLevel);
-
-        Bukkit.getPluginManager().callEvent(new WorldLoadEvent(serverLevel.getWorld())); // Call Event
+        console.prepareLevel(serverLevel);
 
         return Feedback.SUCCESS.toFeedbackWorld(serverLevel.getWorld());
     }
@@ -283,15 +268,7 @@ public final class WorldUtil {
         }
     }
 
-    public static class FeedbackWorld {
-        public final CraftWorld world;
-        public final Feedback feedback;
-
-        public FeedbackWorld(CraftWorld world, Feedback feedback) {
-            this.world = world;
-            this.feedback = feedback;
-        }
-
+    public record FeedbackWorld(CraftWorld world, Feedback feedback) {
         public FeedbackWorld(Feedback feedback) {
             this(null, feedback);
         }

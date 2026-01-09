@@ -45,10 +45,10 @@ public final class MoreFoWorld extends BasePlugin {
         for (WorldSetting worldSetting : get(MainConfig.class).getWorldSettings()) {
             WorldCreator worldCreator = worldSetting.toWorldCreator();
             WorldUtil.FeedbackWorld feedbackWorld = WorldUtil.addWorld(worldCreator);
-            if (feedbackWorld.feedback == WorldUtil.Feedback.SUCCESS) {
+            if (feedbackWorld.feedback() == WorldUtil.Feedback.SUCCESS) {
                 getLogger().info("World " + worldSetting.getName() + " is added");
             } else {
-                getLogger().warning("World " + worldSetting.getName() + " is not added: " + feedbackWorld.feedback);
+                getLogger().warning("World " + worldSetting.getName() + " is not added: " + feedbackWorld.feedback());
             }
         }
 
