@@ -1,7 +1,7 @@
 package me.hsgamer.morefoworld.config;
 
 import me.hsgamer.hscore.config.annotation.ConfigPath;
-import me.hsgamer.morefoworld.config.converter.PositionConverter;
+import me.hsgamer.morefoworld.config.converter.PositionMapConverter;
 import me.hsgamer.morefoworld.config.object.Position;
 import me.hsgamer.morefoworld.config.object.WorldPosition;
 import org.bukkit.World;
@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.Optional;
 
 public interface WorldSpawnConfig {
-    @ConfigPath(value = "spawn", converter = PositionConverter.class)
+    @ConfigPath(value = "spawn", converter = PositionMapConverter.class)
     default Map<String, Position> getSpawn() {
         return new HashMap<>();
     }
