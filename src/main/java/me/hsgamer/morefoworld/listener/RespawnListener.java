@@ -36,13 +36,21 @@ public class RespawnListener implements ListenerComponent {
         Player player = event.getEntity();
         Location location = player.getLocation();
         debug.debug("Death: " + player.getName() + " at " + location);
-
         World world = location.getWorld();
+
+        Location respawnLocation;
         Optional<World> optionalRespawnWorld = plugin.get(RespawnConfig.class).getRespawnWorld(world);
-        if (optionalRespawnWorld.isEmpty()) return;
-        World respawnWorld = optionalRespawnWorld.get();
-        Location respawnLocation = plugin.get(WorldSpawnConfig.class).getSpawn(respawnWorld).map(position -> position.toLocation(respawnWorld)).orElseGet(respawnWorld::getSpawnLocation);
-        debug.debug("Set Respawn to " + respawnWorld);
+        if (optionalRespawnWorld.isPresent()) {
+            World respawnWorld = optionalRespawnWorld.get();
+            respawnLocation = plugin.get(WorldSpawnConfig.class).getSpawn(respawnWorld).map(position -> position.toLocation(respawnWorld)).orElseGet(respawnWorld::getSpawnLocation);
+        } else {
+            respawnLocation = plugin.get(WorldSpawnConfig.class).getSpawn(world).map(position -> position.toLocation(world)).orElse(null);
+        }
+        if (respawnLocation == null) {
+            debug.debug("Respawn location is null");
+            return;
+        }
+        debug.debug("Set Respawn to " + respawnLocation);
 
         player.getScheduler().runAtFixedRate(plugin, task -> {
             if (player.isDead()) return;
