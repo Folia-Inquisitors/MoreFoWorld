@@ -36,7 +36,7 @@ jobs:
           arguments: build
 
       - name: Release
-        uses: HSGamer/action-mcreleaser@main
+        uses: HSGamer/MCReleaser@master
         with:
           files: build/libs/MoreFoWorld-*-all.jar
         env:
