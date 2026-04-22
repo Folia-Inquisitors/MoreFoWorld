@@ -17,6 +17,7 @@ import org.bukkit.WorldCreator;
 
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 
 public final class MoreFoWorld extends BasePlugin {
     @Override
@@ -48,7 +49,7 @@ public final class MoreFoWorld extends BasePlugin {
             if (feedbackWorld.feedback() == WorldUtil.Feedback.SUCCESS) {
                 getLogger().info("World " + worldSetting.getName() + " is added");
             } else {
-                getLogger().warning("World " + worldSetting.getName() + " is not added: " + feedbackWorld.feedback());
+                getLogger().log(Level.WARNING, "World " + worldSetting.getName() + " is not added: " + feedbackWorld.feedback(), feedbackWorld.throwable());
             }
         }
 

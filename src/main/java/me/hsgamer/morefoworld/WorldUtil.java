@@ -1,16 +1,14 @@
 package me.hsgamer.morefoworld;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.mojang.serialization.Dynamic;
 import com.mojang.serialization.Lifecycle;
 import io.papermc.paper.world.PaperWorldLoader;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.nbt.NbtException;
-import net.minecraft.nbt.ReportedNbtException;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.WorldLoader;
 import net.minecraft.server.dedicated.DedicatedServer;
 import net.minecraft.server.dedicated.DedicatedServerProperties;
@@ -26,6 +24,7 @@ import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.LevelSettings;
 import net.minecraft.world.level.biome.BiomeManager;
 import net.minecraft.world.level.dimension.LevelStem;
+import net.minecraft.world.level.gamerules.GameRules;
 import net.minecraft.world.level.levelgen.PatrolSpawner;
 import net.minecraft.world.level.levelgen.PhantomSpawner;
 import net.minecraft.world.level.levelgen.WorldDimensions;
@@ -34,9 +33,11 @@ import net.minecraft.world.level.storage.LevelDataAndDimensions;
 import net.minecraft.world.level.storage.LevelStorageSource;
 import net.minecraft.world.level.storage.PrimaryLevelData;
 import net.minecraft.world.level.validation.ContentValidationException;
-import org.bukkit.*;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.WorldCreator;
 import org.bukkit.craftbukkit.CraftServer;
-import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.craftbukkit.generator.CraftWorldInfo;
 import org.bukkit.generator.BiomeProvider;
 import org.bukkit.generator.ChunkGenerator;
@@ -54,45 +55,33 @@ import java.util.Locale;
  */
 public final class WorldUtil {
     public static FeedbackWorld addWorld(WorldCreator creator) {
+        String name = creator.name();
+        if (Bukkit.getWorld(name) != null || Bukkit.getWorld(creator.key()) != null) {
+            return Feedback.WORLD_ALREADY_EXISTS.toFeedbackWorld();
+        }
+        try {
+            World world = addWorld0(creator);
+            return Feedback.SUCCESS.toFeedbackWorld(world);
+        } catch (Throwable throwable) {
+            return Feedback.ERROR.toFeedbackWorld(throwable);
+        }
+    }
+
+    private static World addWorld0(WorldCreator creator) {
         CraftServer craftServer = (CraftServer) Bukkit.getServer();
         DedicatedServer console = craftServer.getServer();
 
         String name = creator.name();
-
-        String levelName = console.getProperties().levelName;
-        ResourceKey<net.minecraft.world.level.Level> worldKey = null;
-        if (name.equals(levelName)) {
-            return Feedback.WORLD_DEFAULT.toFeedbackWorld();
-        } else if (name.equals(levelName + "_nether")) {
-            if (craftServer.getAllowNether()) {
-                return Feedback.WORLD_DEFAULT.toFeedbackWorld();
-            }
-            worldKey = net.minecraft.world.level.Level.NETHER;
-        } else if (name.equals(levelName + "_the_end")) {
-            if (craftServer.getAllowEnd()) {
-                return Feedback.WORLD_DEFAULT.toFeedbackWorld();
-            }
-            worldKey = net.minecraft.world.level.Level.END;
-        }
-
-        ChunkGenerator generator = creator.generator();
+        ChunkGenerator chunkGenerator = creator.generator();
         BiomeProvider biomeProvider = creator.biomeProvider();
         File folder = new File(craftServer.getWorldContainer(), name);
-        World world = craftServer.getWorld(name);
 
-        CraftWorld worldByKey = (CraftWorld) craftServer.getWorld(creator.key());
-        if (world != null || worldByKey != null) {
-            return world == worldByKey
-                    ? Feedback.WORLD_ALREADY_EXISTS.toFeedbackWorld(worldByKey)
-                    : Feedback.WORLD_DUPLICATED.toFeedbackWorld();
+        if (folder.exists()) {
+            Preconditions.checkArgument(folder.isDirectory(), "File (%s) exists and isn't a folder", name);
         }
 
-        if ((folder.exists()) && (!folder.isDirectory())) {
-            return Feedback.WORLD_FOLDER_INVALID.toFeedbackWorld();
-        }
-
-        if (generator == null) {
-            generator = craftServer.getGenerator(name);
+        if (chunkGenerator == null) {
+            chunkGenerator = craftServer.getGenerator(name);
         }
 
         if (biomeProvider == null) {
@@ -103,7 +92,7 @@ public final class WorldUtil {
             case NORMAL -> LevelStem.OVERWORLD;
             case NETHER -> LevelStem.NETHER;
             case THE_END -> LevelStem.END;
-            default -> throw new IllegalArgumentException("Illegal dimension");
+            default -> throw new IllegalArgumentException("Illegal dimension (" + creator.environment() + ")");
         };
 
         LevelStorageSource.LevelStorageAccess levelStorageAccess;
@@ -113,69 +102,31 @@ public final class WorldUtil {
             throw new RuntimeException(ex);
         }
 
-        Dynamic<?> dataTag;
-        if (levelStorageAccess.hasWorldData()) {
-            net.minecraft.world.level.storage.LevelSummary summary;
-
-            try {
-                dataTag = levelStorageAccess.getDataTag();
-                summary = levelStorageAccess.getSummary(dataTag);
-            } catch (NbtException | ReportedNbtException | IOException ioexception) {
-                LevelStorageSource.LevelDirectory convertable_b = levelStorageAccess.getLevelDirectory();
-
-                MinecraftServer.LOGGER.warn("Failed to load world data from {}", convertable_b.dataFile(), ioexception);
-                MinecraftServer.LOGGER.info("Attempting to use fallback");
-
-                try {
-                    dataTag = levelStorageAccess.getDataTagFallback();
-                    summary = levelStorageAccess.getSummary(dataTag);
-                } catch (NbtException | ReportedNbtException | IOException ioexception1) {
-                    MinecraftServer.LOGGER.error("Failed to load world data from {}", convertable_b.oldDataFile(), ioexception1);
-                    MinecraftServer.LOGGER.error("Failed to load world data from {} and {}. World files may be corrupted. Shutting down.", convertable_b.dataFile(), convertable_b.oldDataFile());
-                    return Feedback.WORLD_FOLDER_INVALID.toFeedbackWorld();
-                }
-
-                levelStorageAccess.restoreLevelDataFromOld();
-            }
-
-            if (summary.requiresManualConversion()) {
-                MinecraftServer.LOGGER.info("This world must be opened in an older version (like 1.6.4) to be safely converted");
-                return Feedback.WORLD_FOLDER_INVALID.toFeedbackWorld();
-            }
-
-            if (!summary.isCompatible()) {
-                MinecraftServer.LOGGER.info("This world was created by an incompatible version.");
-                return Feedback.WORLD_FOLDER_INVALID.toFeedbackWorld();
-            }
-        } else {
-            dataTag = null;
-        }
-
         boolean hardcore = creator.hardcore();
 
         PrimaryLevelData primaryLevelData;
         WorldLoader.DataLoadContext context = console.worldLoaderContext;
         RegistryAccess.Frozen registryAccess = context.datapackDimensions();
         net.minecraft.core.Registry<LevelStem> contextLevelStemRegistry = registryAccess.lookupOrThrow(Registries.LEVEL_STEM);
+        Dynamic<?> dataTag = PaperWorldLoader.getLevelData(levelStorageAccess).dataTag();
         if (dataTag != null) {
-            LevelDataAndDimensions leveldataanddimensions = LevelStorageSource.getLevelDataAndDimensions(dataTag, context.dataConfiguration(), contextLevelStemRegistry, context.datapackWorldgen());
-
-            primaryLevelData = (PrimaryLevelData) leveldataanddimensions.worldData();
-            registryAccess = leveldataanddimensions.dimensions().dimensionsRegistryAccess();
+            LevelDataAndDimensions levelDataAndDimensions = LevelStorageSource.getLevelDataAndDimensions(
+                    dataTag, context.dataConfiguration(), contextLevelStemRegistry, context.datapackWorldgen()
+            );
+            primaryLevelData = (PrimaryLevelData) levelDataAndDimensions.worldData();
+            registryAccess = levelDataAndDimensions.dimensions().dimensionsRegistryAccess();
         } else {
             LevelSettings levelSettings;
-            WorldOptions worldOptions = new WorldOptions(creator.seed(), creator.generateStructures(), false);
+            WorldOptions worldOptions = new WorldOptions(creator.seed(), creator.generateStructures(), creator.bonusChest());
             WorldDimensions worldDimensions;
 
             DedicatedServerProperties.WorldDimensionData properties = new DedicatedServerProperties.WorldDimensionData(GsonHelper.parse((creator.generatorSettings().isEmpty()) ? "{}" : creator.generatorSettings()), creator.type().name().toLowerCase(Locale.ROOT));
-
             levelSettings = new LevelSettings(
                     name,
-                    getGameType(GameMode.SURVIVAL),
-                    hardcore,
-                    Difficulty.EASY,
+                    GameType.byId(craftServer.getDefaultGameMode().getValue()),
+                    hardcore, Difficulty.EASY,
                     false,
-                    new net.minecraft.world.level.gamerules.GameRules(context.dataConfiguration().enabledFeatures()),
+                    new GameRules(context.dataConfiguration().enabledFeatures()),
                     context.dataConfiguration()
             );
             worldDimensions = properties.create(context.datapackWorldgen());
@@ -186,10 +137,15 @@ public final class WorldUtil {
             primaryLevelData = new PrimaryLevelData(levelSettings, worldOptions, complete.specialWorldProperty(), lifecycle);
             registryAccess = complete.dimensionsRegistryAccess();
         }
+
         contextLevelStemRegistry = registryAccess.lookupOrThrow(Registries.LEVEL_STEM);
         primaryLevelData.customDimensions = contextLevelStemRegistry;
         primaryLevelData.checkName(name);
         primaryLevelData.setModdedInfo(console.getServerModName(), console.getModdedStatus().shouldReportAsModified());
+
+        if (console.options.has("forceUpgrade")) {
+            net.minecraft.server.Main.forceUpgrade(levelStorageAccess, primaryLevelData, DataFixers.getDataFixer(), console.options.has("eraseCache"), () -> true, registryAccess, console.options.has("recreateRegionFiles"));
+        }
 
         long i = BiomeManager.obfuscateSeed(primaryLevelData.worldGenOptions().seed());
         List<CustomSpawner> list = ImmutableList.of(
@@ -198,18 +154,18 @@ public final class WorldUtil {
         LevelStem customStem = contextLevelStemRegistry.getValue(actualDimension);
 
         WorldInfo worldInfo = new CraftWorldInfo(primaryLevelData, levelStorageAccess, creator.environment(), customStem.type().value(), customStem.generator(), console.registryAccess());
-        if (biomeProvider == null && generator != null) {
-            biomeProvider = generator.getDefaultBiomeProvider(worldInfo);
+        if (biomeProvider == null && chunkGenerator != null) {
+            biomeProvider = chunkGenerator.getDefaultBiomeProvider(worldInfo);
         }
 
-        if (console.options.has("forceUpgrade")) {
-            net.minecraft.server.Main.forceUpgrade(
-                    levelStorageAccess, primaryLevelData, DataFixers.getDataFixer(), console.options.has("eraseCache"), () -> true, registryAccess, console.options.has("recreateRegionFiles")
-            );
-        }
-
-        if (worldKey == null) {
-            worldKey = ResourceKey.create(Registries.DIMENSION, Identifier.fromNamespaceAndPath(creator.key().namespace(), creator.key().value()));
+        ResourceKey<net.minecraft.world.level.Level> dimensionKey;
+        String levelName = console.getProperties().levelName;
+        if (name.equals(levelName + "_nether")) {
+            dimensionKey = net.minecraft.world.level.Level.NETHER;
+        } else if (name.equals(levelName + "_the_end")) {
+            dimensionKey = net.minecraft.world.level.Level.END;
+        } else {
+            dimensionKey = ResourceKey.create(Registries.DIMENSION, Identifier.fromNamespaceAndPath(creator.key().namespace(), creator.key().value()));
         }
 
         ServerLevel serverLevel = new ServerLevel(
@@ -217,7 +173,7 @@ public final class WorldUtil {
                 console.executor,
                 levelStorageAccess,
                 primaryLevelData,
-                worldKey,
+                dimensionKey,
                 customStem,
                 primaryLevelData.isDebugWorld(),
                 i,
@@ -225,8 +181,7 @@ public final class WorldUtil {
                 true,
                 console.overworld().getRandomSequences(),
                 creator.environment(),
-                generator,
-                biomeProvider
+                chunkGenerator, biomeProvider
         );
 
         console.addLevel(serverLevel);
@@ -236,16 +191,7 @@ public final class WorldUtil {
 
         console.prepareLevel(serverLevel);
 
-        return Feedback.SUCCESS.toFeedbackWorld(serverLevel.getWorld());
-    }
-
-    public static GameType getGameType(GameMode gameMode) {
-        return switch (gameMode) {
-            case SURVIVAL -> GameType.SURVIVAL;
-            case CREATIVE -> GameType.CREATIVE;
-            case ADVENTURE -> GameType.ADVENTURE;
-            case SPECTATOR -> GameType.SPECTATOR;
-        };
+        return serverLevel.getWorld();
     }
 
     public static void applyWorldSpawn(Location location) {
@@ -254,23 +200,25 @@ public final class WorldUtil {
 
     public enum Feedback {
         WORLD_ALREADY_EXISTS,
-        WORLD_DUPLICATED,
-        WORLD_FOLDER_INVALID,
-        WORLD_DEFAULT,
+        ERROR,
         SUCCESS;
 
-        public FeedbackWorld toFeedbackWorld(CraftWorld world) {
-            return new FeedbackWorld(world, this);
+        public FeedbackWorld toFeedbackWorld(World world) {
+            return new FeedbackWorld(world, this, null);
         }
 
         public FeedbackWorld toFeedbackWorld() {
-            return new FeedbackWorld(this);
+            return new FeedbackWorld(this, null);
+        }
+
+        public FeedbackWorld toFeedbackWorld(Throwable throwable) {
+            return new FeedbackWorld(this, throwable);
         }
     }
 
-    public record FeedbackWorld(CraftWorld world, Feedback feedback) {
-        public FeedbackWorld(Feedback feedback) {
-            this(null, feedback);
+    public record FeedbackWorld(World world, Feedback feedback, Throwable throwable) {
+        public FeedbackWorld(Feedback feedback, Throwable throwable) {
+            this(null, feedback, throwable);
         }
     }
 }
