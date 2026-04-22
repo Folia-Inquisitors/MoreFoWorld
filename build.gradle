@@ -22,6 +22,7 @@ if (!versionFile.exists()) {
 def serverVersion = versionFile.text.trim()
 
 repositories {
+    mavenLocal()
     mavenCentral()
     maven {
         name = "folia-inquistors-repo"
@@ -46,7 +47,20 @@ paperweight {
 }
 
 dependencies {
-    paperweight.paperDevBundle("${serverVersion}.build.+")
+    def foliaVersion = ["${serverVersion}.build.+", "${serverVersion}.local-SNAPSHOT"].find { ver ->
+        configurations.detachedConfiguration(dependencies.create("dev.folia:dev-bundle:$ver@zip")).with {
+            transitive = false
+            resolvedConfiguration.lenientConfiguration.artifacts
+        }
+    }
+
+    if (foliaVersion != null) {
+        logger.info("Use Folia dev-bundle: ${foliaVersion}")
+        paperweight.foliaDevBundle(foliaVersion)
+    } else {
+        logger.warn("Folia dev-bundle not found, falling back to paperDevBundle")
+        paperweight.paperDevBundle("${serverVersion}.build.+")
+    }
 
     def core = "4.5.7"
     implementation "me.hsgamer:hscore-bukkit-config:$core"
