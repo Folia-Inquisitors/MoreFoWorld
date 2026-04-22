@@ -2,7 +2,7 @@ import io.papermc.paperweight.userdev.ReobfArtifactConfiguration
 
 plugins {
     id 'java'
-    id 'io.papermc.paperweight.userdev' version '2.0.0-beta.19'
+    id 'io.papermc.paperweight.userdev' version '2.0.0-beta.21'
     id 'com.gradleup.shadow' version '8.3.9'
 }
 
@@ -20,7 +20,6 @@ if (!versionFile.exists()) {
     throw new GradleException("version file not found")
 }
 def serverVersion = versionFile.text.trim()
-def majorServerVersion = serverVersion.count('.') > 1 ? serverVersion.substring(0, serverVersion.lastIndexOf('.')) : serverVersion
 
 repositories {
     mavenCentral()
@@ -47,7 +46,7 @@ paperweight {
 }
 
 dependencies {
-    paperweight.foliaDevBundle("$serverVersion-R0.1-SNAPSHOT")
+    paperweight.paperDevBundle("${serverVersion}.build.+")
 
     def core = "4.5.7"
     implementation "me.hsgamer:hscore-bukkit-config:$core"
@@ -93,7 +92,7 @@ processResources {
     def props = [
             version    : version,
             name       : project.name,
-            apiVersion : majorServerVersion,
+            apiVersion : serverVersion,
             description: project.description
     ]
     inputs.properties props
