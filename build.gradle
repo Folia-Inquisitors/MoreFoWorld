@@ -9,7 +9,7 @@ plugins {
 group = 'me.hsgamer'
 version = '1.14.0'
 def snapshot = false
-description = 'A (temporary) world manager for Folia'
+description = 'A preference world manager for Folia'
 
 if (snapshot) {
     version = version + "-SNAPSHOT"
