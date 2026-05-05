@@ -47,19 +47,15 @@ paperweight {
 }
 
 dependencies {
-    def foliaVersion = ["${serverVersion}.build.+", "${serverVersion}.local-SNAPSHOT"].find { ver ->
-        configurations.detachedConfiguration(dependencies.create("dev.folia:dev-bundle:$ver@zip")).with {
-            transitive = false
-            resolvedConfiguration.lenientConfiguration.artifacts
-        }
-    }
-
-    if (foliaVersion != null) {
-        logger.info("Use Folia dev-bundle: ${foliaVersion}")
-        paperweight.foliaDevBundle(foliaVersion)
+    def foliaLocal = "${serverVersion}.local-SNAPSHOT"
+    def foliaBuild = "${serverVersion}.build.+"
+    if (hasArtifact("dev.folia:dev-bundle:${foliaLocal}@zip")) {
+        paperweight.foliaDevBundle(foliaLocal)
+    } else if (hasArtifact("dev.folia:dev-bundle:${foliaBuild}@zip")) {
+        paperweight.foliaDevBundle(foliaBuild)
     } else {
         logger.warn("Folia dev-bundle not found, falling back to paperDevBundle")
-        paperweight.paperDevBundle("${serverVersion}.build.+")
+        paperweight.paperDevBundle(foliaBuild)
     }
 
     def core = "4.5.7"
@@ -113,5 +109,16 @@ processResources {
     filteringCharset 'UTF-8'
     filesMatching('paper-plugin.yml') {
         expand props
+    }
+}
+
+boolean hasArtifact(String notation) {
+    try {
+        return !configurations.detachedConfiguration(dependencies.create(notation)).with {
+            transitive = false
+            resolvedConfiguration.lenientConfiguration.artifacts
+        }.isEmpty()
+    } catch (Exception ignored) {
+        return false
     }
 }

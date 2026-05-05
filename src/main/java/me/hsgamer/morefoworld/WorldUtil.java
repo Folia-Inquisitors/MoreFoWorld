@@ -174,7 +174,7 @@ public final class WorldUtil {
         );
 
         console.addLevel(serverLevel);
-        console.initWorld(serverLevel);
+        console.initWorld(serverLevel, creator);
 
         serverLevel.setSpawnSettings(true);
 
