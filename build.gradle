@@ -47,16 +47,7 @@ paperweight {
 }
 
 dependencies {
-    def foliaLocal = "${serverVersion}.local-SNAPSHOT"
-    def foliaBuild = "${serverVersion}.build.+"
-    if (hasArtifact("dev.folia:dev-bundle:${foliaLocal}@zip")) {
-        paperweight.foliaDevBundle(foliaLocal)
-    } else if (hasArtifact("dev.folia:dev-bundle:${foliaBuild}@zip")) {
-        paperweight.foliaDevBundle(foliaBuild)
-    } else {
-        logger.warn("Folia dev-bundle not found, falling back to paperDevBundle")
-        paperweight.paperDevBundle(foliaBuild)
-    }
+    paperweight.foliaDevBundle("${serverVersion}.local-SNAPSHOT")
 
     def core = "4.5.7"
     implementation "me.hsgamer:hscore-bukkit-config:$core"
