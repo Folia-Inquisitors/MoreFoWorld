@@ -40,6 +40,7 @@ jobs:
         with:
           files: build/libs/MoreFoWorld-*-all.jar
         env:
+          PROJECT: "MoreFoWorld"
           DESCRIPTION: ${{ steps.changelog.outputs.changelog }}
           GAME_VERSIONS: ${{ steps.version.outputs.version }}
 
@@ -52,3 +53,10 @@ jobs:
           HANGAR_KEY: ${{ secrets.HANGAR_KEY }}
           HANGAR_PROJECT: MoreFoWorld
           HANGAR_PLATFORM: paper
+
+          DISCORD_URL: ${{ secrets.DISCORD_URL }}
+          DISCORD_LINKS: |
+            {
+              "Modrinth": "https://modrinth.com/plugin/morefoworld",
+              "Hangar": "https://hangar.papermc.io/Folia-Inquisitors/MoreFoWorld"
+            }
