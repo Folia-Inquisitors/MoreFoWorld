@@ -1,16 +1,17 @@
 package me.hsgamer.morefoworld;
 
 import com.google.common.collect.ImmutableList;
+import com.mojang.serialization.JsonOps;
 import io.papermc.paper.world.PaperWorldLoader;
 import io.papermc.paper.world.migration.WorldFolderMigration;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.server.WorldLoader;
 import net.minecraft.server.dedicated.DedicatedServer;
 import net.minecraft.server.dedicated.DedicatedServerProperties;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.GsonHelper;
+import net.minecraft.util.Util;
 import net.minecraft.util.datafix.DataFixers;
 import net.minecraft.world.entity.ai.village.VillageSiege;
 import net.minecraft.world.entity.npc.CatSpawner;
@@ -19,6 +20,7 @@ import net.minecraft.world.level.CustomSpawner;
 import net.minecraft.world.level.biome.BiomeManager;
 import net.minecraft.world.level.dimension.LevelStem;
 import net.minecraft.world.level.levelgen.*;
+import net.minecraft.world.level.levelgen.flat.FlatLevelGeneratorSettings;
 import net.minecraft.world.level.storage.*;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -77,18 +79,17 @@ public final class WorldUtil {
             default -> throw new IllegalArgumentException("Illegal dimension (" + creator.environment() + ")");
         };
 
-        final ResourceKey<net.minecraft.world.level.Level> dimensionKey = PaperWorldLoader.dimensionKey(creator.key());
-        WorldLoader.DataLoadContext context = console.worldLoaderContext;
-        RegistryAccess.Frozen registryAccess = context.datapackDimensions();
-        net.minecraft.core.Registry<LevelStem> contextLevelStemRegistry = registryAccess.lookupOrThrow(Registries.LEVEL_STEM);
-        final LevelStem configuredStem = console.registryAccess().lookupOrThrow(Registries.LEVEL_STEM).getValue(actualDimension);
+        RegistryAccess registryAccess = console.registryAccess();
+        final ResourceKey<net.minecraft.world.level.Level> dimensionKey = CraftNamespacedKey.toResourceKey(Registries.DIMENSION, creator.key());
+        net.minecraft.core.Registry<LevelStem> levelStemRegistry = registryAccess.lookupOrThrow(Registries.LEVEL_STEM);
+        final LevelStem configuredStem = levelStemRegistry.getValue(actualDimension);
         if (configuredStem == null) {
             throw new IllegalStateException("Missing configured level stem " + actualDimension);
         }
         try {
             WorldFolderMigration.migrateApiWorld(
                     console.storageSource,
-                    console.registryAccess(),
+                    registryAccess,
                     name,
                     actualDimension,
                     dimensionKey
@@ -102,22 +103,31 @@ public final class WorldUtil {
                 name
         );
         final PrimaryLevelData primaryLevelData = (PrimaryLevelData) console.getWorldData();
-        WorldGenSettings worldGenSettings = LevelStorageSource.readExistingSavedData(console.storageSource, dimensionKey, console.registryAccess(), WorldGenSettings.TYPE)
+        WorldGenSettings worldGenSettings = LevelStorageSource.readExistingSavedData(console.storageSource, dimensionKey, registryAccess, WorldGenSettings.TYPE)
                 .result()
                 .orElse(null);
+        RegistryAccess contextRegistryAccess = registryAccess;
         if (worldGenSettings == null) {
             WorldOptions worldOptions = new WorldOptions(creator.seed(), creator.generateStructures(), creator.bonusChest());
 
-            DedicatedServerProperties.WorldDimensionData properties = new DedicatedServerProperties.WorldDimensionData(GsonHelper.parse((creator.generatorSettings().isEmpty()) ? "{}" : creator.generatorSettings()), creator.type().name().toLowerCase(Locale.ROOT));
-            WorldDimensions worldDimensions = properties.create(context.datapackWorldgen());
+            String flatGenSettings = creator.generatorSettings();
+            if (flatGenSettings.isEmpty()) {
+                flatGenSettings = FlatLevelGeneratorSettings.CODEC.encodeStart(registryAccess.createSerializationContext(JsonOps.INSTANCE), FlatLevelGeneratorSettings.getDefault(
+                        registryAccess.lookupOrThrow(Registries.BIOME),
+                        registryAccess.lookupOrThrow(Registries.STRUCTURE_SET),
+                        registryAccess.lookupOrThrow(Registries.PLACED_FEATURE)
+                )).getOrThrow().toString();
+            }
+            DedicatedServerProperties.WorldDimensionData properties = new DedicatedServerProperties.WorldDimensionData(GsonHelper.parse(flatGenSettings), creator.type().name().toLowerCase(Locale.ROOT));
+            WorldDimensions worldDimensions = properties.create(registryAccess);
 
-            WorldDimensions.Complete complete = worldDimensions.bake(contextLevelStemRegistry);
+            WorldDimensions.Complete complete = worldDimensions.bake(levelStemRegistry);
             if (complete.dimensions().getValue(actualDimension) == null) {
                 throw new IllegalStateException("Missing generated level stem " + actualDimension + " for world " + name);
             }
 
             worldGenSettings = new WorldGenSettings(worldOptions, worldDimensions);
-            registryAccess = complete.dimensionsRegistryAccess();
+            contextRegistryAccess = complete.dimensionsRegistryAccess();
             loadedWorldData.levelOverrides().setHardcore(creator.hardcore());
             loadedWorldData = new PaperWorldLoader.LoadedWorldData(
                     loadedWorldData.bukkitName(),
@@ -128,27 +138,27 @@ public final class WorldUtil {
         }
         final WorldGenSettings genSettingsFinal = worldGenSettings;
 
-        contextLevelStemRegistry = registryAccess.lookupOrThrow(Registries.LEVEL_STEM);
+        levelStemRegistry = contextRegistryAccess.lookupOrThrow(Registries.LEVEL_STEM);
 
         if (console.options.has("forceUpgrade")) {
-            net.minecraft.server.Main.forceUpgrade(console.storageSource, DataFixers.getDataFixer(), console.options.has("eraseCache"), () -> true, registryAccess, console.options.has("recreateRegionFiles"));
+            net.minecraft.server.Main.forceUpgrade(console.storageSource, DataFixers.getDataFixer(), console.options.has("eraseCache"), () -> true, contextRegistryAccess, console.options.has("recreateRegionFiles"));
         }
 
         long biomeZoomSeed = BiomeManager.obfuscateSeed(genSettingsFinal.options().seed());
         LevelStem customStem = genSettingsFinal.dimensions().get(actualDimension).orElse(null);
         if (customStem == null) {
-            customStem = contextLevelStemRegistry.getValue(actualDimension);
+            customStem = levelStemRegistry.getValue(actualDimension);
         }
         if (customStem == null) {
             throw new IllegalStateException("Missing level stem for world " + name + " using key " + actualDimension);
         }
 
-        WorldInfo worldInfo = new CraftWorldInfo(loadedWorldData.bukkitName(), CraftNamespacedKey.fromMinecraft(dimensionKey.identifier()), genSettingsFinal.options().seed(), primaryLevelData.enabledFeatures(), creator.environment(), customStem.type().value(), customStem.generator(), craftServer.getHandle().getServer().registryAccess(), loadedWorldData.uuid());
+        WorldInfo worldInfo = new CraftWorldInfo(loadedWorldData.bukkitName(), CraftNamespacedKey.fromMinecraft(dimensionKey.identifier()), genSettingsFinal.options().seed(), primaryLevelData.enabledFeatures(), creator.environment(), customStem.type().value(), customStem.generator(), registryAccess, loadedWorldData.uuid());
         if (biomeProvider == null && chunkGenerator != null) {
             biomeProvider = chunkGenerator.getDefaultBiomeProvider(worldInfo);
         }
 
-        final SavedDataStorage savedDataStorage = new SavedDataStorage(console.storageSource.getDimensionPath(dimensionKey).resolve(LevelResource.DATA.id()), console.getFixerUpper(), console.registryAccess());
+        final SavedDataStorage savedDataStorage = new SavedDataStorage(console.storageSource.getDimensionPath(dimensionKey).resolve(LevelResource.DATA.id()), console.getFixerUpper(), registryAccess);
         savedDataStorage.set(WorldGenSettings.TYPE, new WorldGenSettings(genSettingsFinal.options(), genSettingsFinal.dimensions()));
         List<CustomSpawner> list = ImmutableList.of(
                 new PhantomSpawner(), new PatrolSpawner(), new CatSpawner(), new VillageSiege(), new WanderingTraderSpawner(savedDataStorage)
@@ -156,7 +166,7 @@ public final class WorldUtil {
 
         ServerLevel serverLevel = new ServerLevel(
                 console,
-                console.executor,
+                Util.backgroundExecutor(),
                 console.storageSource,
                 genSettingsFinal,
                 dimensionKey,
