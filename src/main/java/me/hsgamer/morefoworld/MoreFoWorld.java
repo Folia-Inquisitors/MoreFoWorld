@@ -1,11 +1,10 @@
 package me.hsgamer.morefoworld;
 
+import io.github.projectunified.craftcommand.paper.PaperCommandManager;
 import io.github.projectunified.minelib.plugin.base.BasePlugin;
-import io.github.projectunified.minelib.plugin.command.CommandComponent;
 import me.hsgamer.hscore.bukkit.config.BukkitConfig;
 import me.hsgamer.hscore.bukkit.utils.MessageUtils;
 import me.hsgamer.hscore.config.proxy.ConfigGenerator;
-import me.hsgamer.morefoworld.command.MainCommand;
 import me.hsgamer.morefoworld.config.*;
 import me.hsgamer.morefoworld.config.object.Position;
 import me.hsgamer.morefoworld.listener.PortalListener;
@@ -32,13 +31,14 @@ public final class MoreFoWorld extends BasePlugin {
                 new PortalListener(this),
                 new RespawnListener(this),
                 new SpawnListener(this),
-                new CommandComponent(this, () -> List.of(new MainCommand(this)))
+                new PaperCommandManager(this, (sender, exception) -> MessageUtils.sendMessage(sender.getSender(), "&c" + exception.getMessage()))
         );
     }
 
     @Override
     public void load() {
         MessageUtils.setPrefix("&8[&6MoreFoWorld&8] &r");
+        get(PaperCommandManager.class).register(new Commands(this));
     }
 
     @Override

@@ -60,8 +60,12 @@ dependencies {
     implementation "io.github.projectunified:minelib-plugin-base:$minelib"
     implementation "io.github.projectunified:minelib-plugin-listener:$minelib"
     implementation "io.github.projectunified:minelib-plugin-permission:$minelib"
-    implementation "io.github.projectunified:minelib-plugin-command:$minelib"
-    implementation "io.github.projectunified:minelib-util-subcommand:$minelib"
+
+    def craftcommand = "0.6.0"
+    compileOnly "io.github.projectunified:craftcommand-annotations:$craftcommand"
+    compileOnly "io.github.projectunified:craftcommand-bukkit-annotations:$craftcommand"
+    implementation "io.github.projectunified:craftcommand-paper-runtime:$craftcommand"
+    annotationProcessor "io.github.projectunified:craftcommand-paper-processor:$craftcommand"
 }
 
 assemble {
