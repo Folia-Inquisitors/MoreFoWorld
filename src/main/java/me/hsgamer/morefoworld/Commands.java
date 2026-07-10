@@ -38,9 +38,9 @@ public class Commands {
         }
     }
 
-    @Subcommand(value = "current", description = "Get the world of the player")
+    @Command(value = "current", description = "Get the world of the player")
     @Permission("morefoworld.current")
-    public void current(CommandSender sender, @Optional Player target) {
+    public void current(CommandSender sender, @Default Player target) {
         if (target == null) {
             if (sender instanceof Player) {
                 target = (Player) sender;
@@ -54,9 +54,9 @@ public class Commands {
         MessageUtils.sendMessage(sender, "&aThe current world of &e" + target.getName() + " &a is &e" + target.getWorld().getName());
     }
 
-    @Subcommand(value = "teleport", description = "Teleport to a world")
+    @Command(value = "teleport", description = "Teleport to a world")
     @Permission("morefoworld.teleport")
-    public void teleport(CommandSender sender, World world, @Optional Player target) {
+    public void teleport(CommandSender sender, World world, @Default Player target) {
         if (target == null) {
             if (sender instanceof Player) {
                 target = (Player) sender;
@@ -80,7 +80,7 @@ public class Commands {
 
     public final List<String> portalTypes = Arrays.asList("nether", "end");
 
-    @Subcommand(value = "linkportal", description = "Link portals between two worlds")
+    @Command(value = "linkportal", description = "Link portals between two worlds")
     @Permission("morefoworld.linkportal")
     public void linkPortal(CommandSender sender, World from, World to, @Suggest("portalTypes") String type) {
         BiConsumer<String, String> action;
@@ -93,7 +93,7 @@ public class Commands {
         MessageUtils.sendMessage(sender, "&aSuccessfully linked");
     }
 
-    @Subcommand(value = "unlinkportal", description = "Unlink the portal of a world")
+    @Command(value = "unlinkportal", description = "Unlink the portal of a world")
     @Permission("morefoworld.linkportal")
     public void unlinkPortal(CommandSender sender, World world, @Suggest("portalTypes") String type) {
         Predicate<String> action;
@@ -109,14 +109,14 @@ public class Commands {
         }
     }
 
-    @Subcommand(value = "linkrespawn", description = "Link respawn location between two worlds")
+    @Command(value = "linkrespawn", description = "Link respawn location between two worlds")
     @Permission("morefoworld.linkrespawn")
     public void linkRespawn(CommandSender sender, World from, World to) {
         plugin.get(RespawnConfig.class).linkWorld(from.getName(), to.getName());
         MessageUtils.sendMessage(sender, "&aSuccessfully linked");
     }
 
-    @Subcommand(value = "unlinkrespawn", description = "Unlink respawn location of a world")
+    @Command(value = "unlinkrespawn", description = "Unlink respawn location of a world")
     @Permission("morefoworld.linkrespawn")
     public void unlinkRespawn(CommandSender sender, World world) {
         if (plugin.get(RespawnConfig.class).unlinkWorld(world.getName())) {
@@ -126,7 +126,7 @@ public class Commands {
         }
     }
 
-    @Subcommand(value = "setspawn", description = "Set the spawn location the player will be teleported to when they joins the server")
+    @Command(value = "setspawn", description = "Set the spawn location the player will be teleported to when they joins the server")
     @Permission("morefoworld.setspawn")
     public void setSpawn(Player player) {
         SpawnConfig spawnConfig = plugin.get(SpawnConfig.class);
@@ -137,7 +137,7 @@ public class Commands {
         MessageUtils.sendMessage(player, "&aSpawn location set");
     }
 
-    @Subcommand(value = "setworldspawn", description = "Set the spawn location of the world")
+    @Command(value = "setworldspawn", description = "Set the spawn location of the world")
     @Permission("morefoworld.setworldspawn")
     public void setWorldSpawn(Player player) {
         WorldPosition worldPosition = WorldPosition.fromLocation(player.getLocation());
