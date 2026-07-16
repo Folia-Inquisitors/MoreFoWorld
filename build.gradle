@@ -55,6 +55,7 @@ dependencies {
     implementation "me.hsgamer:hscore-bukkit-utils:$core"
     implementation "me.hsgamer:hscore-config-proxy:$core"
     implementation "me.hsgamer:hscore-common:$core"
+    implementation "me.hsgamer:hscore-task:$core"
 
     def minelib = "1.2.5"
     implementation "io.github.projectunified:minelib-plugin-base:$minelib"

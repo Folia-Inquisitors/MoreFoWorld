@@ -1,7 +1,9 @@
 package me.hsgamer.morefoworld;
 
 import io.github.projectunified.craftcommand.CommandInfo;
-import io.github.projectunified.craftcommand.annotation.*;
+import io.github.projectunified.craftcommand.annotation.Command;
+import io.github.projectunified.craftcommand.annotation.Default;
+import io.github.projectunified.craftcommand.annotation.Suggest;
 import io.github.projectunified.craftcommand.bukkit.annotation.Permission;
 import io.github.projectunified.craftcommand.paper.PaperCommandManager;
 import me.hsgamer.hscore.bukkit.utils.MessageUtils;
@@ -10,7 +12,9 @@ import me.hsgamer.morefoworld.config.RespawnConfig;
 import me.hsgamer.morefoworld.config.SpawnConfig;
 import me.hsgamer.morefoworld.config.WorldSpawnConfig;
 import me.hsgamer.morefoworld.config.object.WorldPosition;
+import org.bukkit.Bukkit;
 import org.bukkit.World;
+import org.bukkit.WorldCreator;
 import org.bukkit.command.CommandException;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -24,6 +28,7 @@ import java.util.logging.Level;
 
 @Command(value = "morefoworld", aliases = {"worlds", "mfw"}, description = "MoreFoWorld command")
 public class Commands {
+    public final List<String> portalTypes = Arrays.asList("nether", "end");
     private final MoreFoWorld plugin;
 
     public Commands(MoreFoWorld plugin) {
@@ -78,7 +83,40 @@ public class Commands {
         });
     }
 
-    public final List<String> portalTypes = Arrays.asList("nether", "end");
+    @Command(value = "load", description = "Load or create a world")
+    @Permission("morefoworld.load")
+    public void loadWorld(CommandSender sender, String name) {
+        WorldCreator creator = WorldCreator.name(name);
+        WorldUtil.FeedbackWorld result = WorldUtil.addWorld(creator);
+        switch (result.feedback()) {
+            case SUCCESS -> MessageUtils.sendMessage(sender, "&aWorld &e" + name + " &ahas been loaded");
+            case WORLD_ALREADY_EXISTS -> MessageUtils.sendMessage(sender, "&cWorld &e" + name + " &calready exists");
+            case ERROR -> {
+                MessageUtils.sendMessage(sender, "&cFailed to load world &e" + name + "&c: " + (result.throwable() != null ? result.throwable().getMessage() : "Unknown error"));
+                plugin.getLogger().log(Level.WARNING, "Failed to load world " + name, result.throwable());
+            }
+            default -> MessageUtils.sendMessage(sender, "&cUnexpected feedback: " + result.feedback());
+        }
+    }
+
+    @Command(value = "unload", description = "Unload a world")
+    @Permission("morefoworld.unload")
+    public void unloadWorld(CommandSender sender, World world) {
+        if (world.equals(Bukkit.getWorlds().get(0))) {
+            MessageUtils.sendMessage(sender, "&cCannot unload the main world");
+            return;
+        }
+
+        WorldUtil.Feedback feedback = WorldUtil.removeWorld(plugin, world, true);
+        switch (feedback) {
+            case SUCCESS -> MessageUtils.sendMessage(sender, "&aUnloading world &e" + world.getName() + "&a...");
+            case WORLD_NOT_FOUND -> MessageUtils.sendMessage(sender, "&cWorld not found");
+            case CANNOT_UNLOAD_OVERWORLD -> MessageUtils.sendMessage(sender, "&cCannot unload the main world");
+            case PLAYERS_ONLINE -> MessageUtils.sendMessage(sender, "&cThere are still players in the world");
+            case UNLOAD_CANCELLED -> MessageUtils.sendMessage(sender, "&cUnload was cancelled by a plugin");
+            default -> MessageUtils.sendMessage(sender, "&cAn error occurred");
+        }
+    }
 
     @Command(value = "linkportal", description = "Link portals between two worlds")
     @Permission("morefoworld.linkportal")

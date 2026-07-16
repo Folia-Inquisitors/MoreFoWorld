@@ -1,9 +1,15 @@
 package me.hsgamer.morefoworld;
 
+import ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel;
+import ca.spottedleaf.moonrise.patches.chunk_system.scheduling.ChunkHolderManager;
+import ca.spottedleaf.moonrise.patches.chunk_system.scheduling.NewChunkHolder;
 import com.google.common.collect.ImmutableList;
 import com.mojang.serialization.JsonOps;
+import io.papermc.paper.threadedregions.RegionizedServer;
+import io.papermc.paper.threadedregions.scheduler.GlobalRegionScheduler;
 import io.papermc.paper.world.PaperWorldLoader;
 import io.papermc.paper.world.migration.WorldFolderMigration;
+import me.hsgamer.hscore.task.BatchRunnable;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
@@ -17,6 +23,7 @@ import net.minecraft.world.entity.ai.village.VillageSiege;
 import net.minecraft.world.entity.npc.CatSpawner;
 import net.minecraft.world.entity.npc.wanderingtrader.WanderingTraderSpawner;
 import net.minecraft.world.level.CustomSpawner;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.BiomeManager;
 import net.minecraft.world.level.dimension.LevelStem;
 import net.minecraft.world.level.levelgen.*;
@@ -27,22 +34,50 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.craftbukkit.CraftServer;
+import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.craftbukkit.generator.CraftWorldInfo;
 import org.bukkit.craftbukkit.util.CraftNamespacedKey;
+import org.bukkit.event.world.WorldUnloadEvent;
 import org.bukkit.generator.BiomeProvider;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.generator.WorldInfo;
+import org.bukkit.plugin.Plugin;
 
 import java.io.IOException;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
-/**
- * @see net.minecraft.server.MinecraftServer#createLevel(LevelStem, PaperWorldLoader.WorldLoadingInfoAndData, LevelDataAndDimensions.WorldDataAndGenSettings)
- * @see CraftServer#createWorld(WorldCreator)
- * @see DedicatedServer#initServer()
- */
 public final class WorldUtil {
+    private static final VarHandle RS_INSTANCE;
+    private static final VarHandle RS_WORLDS;
+    private static final VarHandle CW_WORLDS;
+
+    static {
+        try {
+            var rLookup = MethodHandles.privateLookupIn(RegionizedServer.class, MethodHandles.lookup());
+            var cLookup = MethodHandles.privateLookupIn(CraftServer.class, MethodHandles.lookup());
+            RS_INSTANCE = rLookup.findStaticVarHandle(RegionizedServer.class, "INSTANCE", RegionizedServer.class);
+            RS_WORLDS = rLookup.findVarHandle(RegionizedServer.class, "worlds", CopyOnWriteArrayList.class);
+            CW_WORLDS = cLookup.findVarHandle(CraftServer.class, "worlds", Map.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to initialize VarHandles for reflection", e);
+        }
+    }
+
+    /**
+     * Add a world to the server.
+     *
+     * @param creator the world creator
+     * @return the feedback
+     * @see CraftServer#createWorld(WorldCreator) Folia stubs this with "not implemented properly yet".
+     * This method bypasses the stub by calling NMS internals directly.
+     */
     public static FeedbackWorld addWorld(WorldCreator creator) {
         String name = creator.name();
         if (Bukkit.getWorld(name) != null || Bukkit.getWorld(creator.key()) != null) {
@@ -56,6 +91,15 @@ public final class WorldUtil {
         }
     }
 
+    /**
+     * Internal world creation. Mirrors the startup sequence used by
+     * {@link net.minecraft.server.dedicated.DedicatedServer#initServer()}.
+     *
+     * @param creator the world creator
+     * @return the created world
+     * @see net.minecraft.server.MinecraftServer#createLevel(LevelStem, io.papermc.paper.world.PaperWorldLoader.WorldLoadingInfoAndData, LevelDataAndDimensions.WorldDataAndGenSettings)
+     * @see DedicatedServer#initServer()
+     */
     private static World addWorld0(WorldCreator creator) {
         CraftServer craftServer = (CraftServer) Bukkit.getServer();
         DedicatedServer console = craftServer.getServer();
@@ -197,10 +241,150 @@ public final class WorldUtil {
         location.getWorld().setSpawnLocation(location);
     }
 
+    /**
+     * Schedule the world to be unloaded asynchronously.
+     * <p>
+     * Uses {@link BatchRunnable} across three stages:
+     * <ol>
+     *   <li>Gather all chunk holders from {@link ChunkHolderManager#getChunkHolders()}</li>
+     *   <li>Save each chunk on its owning region thread via {@link org.bukkit.Bukkit#getRegionScheduler()}</li>
+     *   <li>Final cleanup on the global tick thread via {@link GlobalRegionScheduler}</li>
+     * </ol>
+     *
+     * @param plugin the plugin initiating the unload
+     * @param world  the world to unload
+     * @param save   whether to save chunks before removing
+     * @return {@link Feedback#SUCCESS} if the unload was scheduled,
+     * or an error feedback if pre-checks failed
+     * @see CraftServer#unloadWorld(World, boolean) Folia stubs this with "not implemented properly yet".
+     * This method bypasses the stub.
+     * @see io.papermc.paper.threadedregions.RegionShutdownThread The only existing world cleanup in Folia.
+     * Stage 1 mirrors its per-region chunk save logic adapted for a single-world context.
+     * @see ChunkHolderManager#close(boolean, boolean) Stage 2 uses this to flush I/O and close caches.
+     * @see ChunkHolderManager#getChunkHolders() Stage 0 snapshots loaded chunks from this.
+     * @see NewChunkHolder#save(boolean) Stage 1 saves each holder on its owning region thread.
+     */
+    public static Feedback removeWorld(Plugin plugin, World world, boolean save) {
+        CraftServer craftServer = (CraftServer) Bukkit.getServer();
+        DedicatedServer console = craftServer.getServer();
+        CraftWorld craftWorld = (CraftWorld) world;
+        ServerLevel level = craftWorld.getHandle();
+
+        if (Bukkit.getWorld(world.getName()) == null) {
+            return Feedback.WORLD_NOT_FOUND;
+        }
+        if (level.dimension() == Level.OVERWORLD) {
+            return Feedback.CANNOT_UNLOAD_OVERWORLD;
+        }
+        if (!level.players().isEmpty()) {
+            return Feedback.PLAYERS_ONLINE;
+        }
+        WorldUnloadEvent event = new WorldUnloadEvent(world);
+        if (!event.callEvent()) {
+            return Feedback.UNLOAD_CANCELLED;
+        }
+
+        ChunkHolderManager holderManager = ((ChunkSystemServerLevel) level).moonrise$getChunkTaskScheduler().chunkHolderManager;
+
+        BatchRunnable batch = new BatchRunnable();
+
+        // Stage 0: snapshot holders
+        batch.addTaskPool(0, pool -> pool.addLast(process -> {
+            process.getData().put("holders", holderManager.getChunkHolders());
+            process.next();
+        }));
+
+        // Stage 1: save each chunk on its owning region thread
+        batch.addTaskPool(1, pool -> pool.addLast(process -> {
+            List<NewChunkHolder> holders = process.getData().get("holders");
+            if (holders.isEmpty()) {
+                process.next();
+                return;
+            }
+            AtomicInteger remaining = new AtomicInteger(holders.size());
+            for (NewChunkHolder h : holders) {
+                int cx = h.chunkX;
+                int cz = h.chunkZ;
+                Bukkit.getRegionScheduler().execute(plugin, world, cx, cz, () -> {
+                    try {
+                        if (save) {
+                            h.save(false);
+                        }
+                    } catch (Exception ignored) {
+                        // chunk may have been unloaded concurrently
+                    }
+                    if (remaining.decrementAndGet() == 0) {
+                        process.next();
+                    }
+                });
+            }
+        }));
+
+        // Stage 2: final cleanup on the global tick thread
+        // Must use halt=true to wait for in-flight I/O before closing caches
+        batch.addTaskPool(2, pool -> pool.addLast(process -> {
+            Bukkit.getGlobalRegionScheduler().run(plugin, scheduledTask -> {
+                try {
+                    level.saveLevelData(true);
+                    console.removeLevel(level);
+                    removeFromRegionizedWorlds(level);
+                    removeFromCraftWorlds(craftServer, world);
+                    holderManager.close(save, true);
+                } catch (Exception e) {
+                    plugin.getLogger().log(java.util.logging.Level.SEVERE, "Error during world unload cleanup for " + world.getName(), e);
+                }
+                process.next();
+            });
+        }));
+
+        batch.setTimeout(60, TimeUnit.SECONDS);
+
+        Bukkit.getAsyncScheduler().runNow(plugin, _ -> {
+            batch.run();
+            if (batch.isTimeout()) {
+                plugin.getLogger().warning("World unload for " + world.getName() + " timed out after 60s");
+            } else {
+                plugin.getLogger().info("World " + world.getName() + " unloaded");
+            }
+        });
+
+        return Feedback.SUCCESS;
+    }
+
+    /**
+     * Remove the world from {@link RegionizedServer#getInstance()}.
+     * Folia's {@link RegionizedServer} has no public {@code removeWorld()} method,
+     * so this uses a {@link VarHandle} on the private {@code worlds} field.
+     *
+     * @see RegionizedServer#addWorld(ServerLevel)
+     */
+    private static void removeFromRegionizedWorlds(ServerLevel level) {
+        RegionizedServer rs = (RegionizedServer) RS_INSTANCE.get();
+        @SuppressWarnings("unchecked")
+        CopyOnWriteArrayList<ServerLevel> worlds = (CopyOnWriteArrayList<ServerLevel>) RS_WORLDS.get(rs);
+        worlds.remove(level);
+    }
+
+    /**
+     * Remove the world from {@link CraftServer}'s internal world map.
+     * The {@code worlds} field is private, so this uses a {@link VarHandle}.
+     *
+     * @see CraftServer#addWorld(org.bukkit.World)
+     */
+    private static void removeFromCraftWorlds(CraftServer craftServer, World world) {
+        @SuppressWarnings("unchecked")
+        Map<String, World> worlds = (Map<String, World>) CW_WORLDS.get(craftServer);
+        worlds.remove(world.getName().toLowerCase(Locale.ROOT));
+    }
+
     public enum Feedback {
         WORLD_ALREADY_EXISTS,
         ERROR,
-        SUCCESS;
+        SUCCESS,
+        WORLD_NOT_FOUND,
+        CANNOT_UNLOAD_OVERWORLD,
+        PLAYERS_ONLINE,
+        UNLOAD_CANCELLED;
 
         public FeedbackWorld toFeedbackWorld(World world) {
             return new FeedbackWorld(world, this, null);
