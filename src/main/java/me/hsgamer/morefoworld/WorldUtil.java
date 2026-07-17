@@ -289,13 +289,13 @@ public final class WorldUtil {
         BatchRunnable batch = new BatchRunnable();
 
         // Stage 0: snapshot holders
-        batch.addTaskPool(0, pool -> pool.addLast(process -> {
+        batch.getTaskPool(0).addLast(process -> {
             process.getData().put("holders", holderManager.getChunkHolders());
             process.next();
-        }));
+        });
 
         // Stage 1: save each chunk on its owning region thread
-        batch.addTaskPool(1, pool -> pool.addLast(process -> {
+        batch.getTaskPool(1).addLast(process -> {
             List<NewChunkHolder> holders = process.getData().get("holders");
             if (holders.isEmpty()) {
                 process.next();
@@ -312,18 +312,19 @@ public final class WorldUtil {
                         }
                     } catch (Exception ignored) {
                         // chunk may have been unloaded concurrently
-                    }
-                    if (remaining.decrementAndGet() == 0) {
-                        process.next();
+                    } finally {
+                        if (remaining.decrementAndGet() == 0) {
+                            process.next();
+                        }
                     }
                 });
             }
-        }));
+        });
 
         // Stage 2: final cleanup on the global tick thread
         // Must use halt=true to wait for in-flight I/O before closing caches
-        batch.addTaskPool(2, pool -> pool.addLast(process -> {
-            Bukkit.getGlobalRegionScheduler().run(plugin, scheduledTask -> {
+        batch.getTaskPool(2).addLast(process -> {
+            Bukkit.getGlobalRegionScheduler().run(plugin, _ -> {
                 try {
                     level.saveLevelData(true);
                     console.removeLevel(level);
@@ -332,10 +333,11 @@ public final class WorldUtil {
                     holderManager.close(save, true);
                 } catch (Exception e) {
                     plugin.getLogger().log(java.util.logging.Level.SEVERE, "Error during world unload cleanup for " + world.getName(), e);
+                } finally {
+                    process.next();
                 }
-                process.next();
             });
-        }));
+        });
 
         batch.setTimeout(60, TimeUnit.SECONDS);
 
