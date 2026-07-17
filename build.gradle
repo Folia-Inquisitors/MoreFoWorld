@@ -62,7 +62,7 @@ dependencies {
     implementation "io.github.projectunified:minelib-plugin-listener:$minelib"
     implementation "io.github.projectunified:minelib-plugin-permission:$minelib"
 
-    def craftcommand = "0.9.0"
+    def craftcommand = "0.9.1"
     compileOnly "io.github.projectunified:craftcommand-annotations:$craftcommand"
     compileOnly "io.github.projectunified:craftcommand-bukkit-annotations:$craftcommand"
     implementation "io.github.projectunified:craftcommand-paper-runtime:$craftcommand"
