@@ -41,14 +41,26 @@ repositories {
         name = "jitpack"
         url = "https://jitpack.io"
     }
+    maven {
+        name = "canvasmc-repo"
+        url = uri("https://maven.canvasmc.io/snapshots")
+    }
 }
 
 paperweight {
     paperweight.setReobfArtifactConfiguration(ReobfArtifactConfiguration.getMOJANG_PRODUCTION())
 }
 
+configurations.configureEach {
+    resolutionStrategy.capabilitiesResolution.withCapability("com.destroystokyo.paper:paper-mojangapi") {
+        select(candidates.first())
+    }
+}
+
 dependencies {
     paperweight.foliaDevBundle("${serverVersion}.local-SNAPSHOT")
+
+    compileOnly("io.canvasmc.canvas:canvas-api:1.21.11-R0.1-SNAPSHOT")
 
     def core = "4.5.7"
     implementation "me.hsgamer:hscore-bukkit-config:$core"
@@ -76,6 +88,7 @@ assemble {
 shadowJar {
     relocate("me.hsgamer.hscore", "me.hsgamer.morefoworld.core")
     relocate("io.github.projectunified.minelib", "me.hsgamer.morefoworld.minelib")
+    relocate("io.github.projectunified.craftcommand", "me.hsgamer.morefoworld.craftcommand")
     minimize()
 }
 
@@ -106,16 +119,5 @@ processResources {
     filteringCharset 'UTF-8'
     filesMatching('paper-plugin.yml') {
         expand props
-    }
-}
-
-boolean hasArtifact(String notation) {
-    try {
-        return !configurations.detachedConfiguration(dependencies.create(notation)).with {
-            transitive = false
-            resolvedConfiguration.lenientConfiguration.artifacts
-        }.isEmpty()
-    } catch (Exception ignored) {
-        return false
     }
 }

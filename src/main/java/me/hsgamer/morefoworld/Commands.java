@@ -12,6 +12,7 @@ import me.hsgamer.morefoworld.config.RespawnConfig;
 import me.hsgamer.morefoworld.config.SpawnConfig;
 import me.hsgamer.morefoworld.config.WorldSpawnConfig;
 import me.hsgamer.morefoworld.config.object.WorldPosition;
+import me.hsgamer.morefoworld.initializer.WorldInitializer;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
@@ -87,7 +88,7 @@ public class Commands {
     @Permission("morefoworld.load")
     public void loadWorld(CommandSender sender, String name) {
         WorldCreator creator = WorldCreator.name(name);
-        WorldUtil.FeedbackWorld result = WorldUtil.addWorld(creator);
+        WorldInitializer.FeedbackWorld result = plugin.get(WorldInitializer.class).addWorld(creator);
         switch (result.feedback()) {
             case SUCCESS -> MessageUtils.sendMessage(sender, "&aWorld &e" + name + " &ahas been loaded");
             case WORLD_ALREADY_EXISTS -> MessageUtils.sendMessage(sender, "&cWorld &e" + name + " &calready exists");
@@ -107,15 +108,16 @@ public class Commands {
             return;
         }
 
-        WorldUtil.Feedback feedback = WorldUtil.removeWorld(plugin, world, true);
-        switch (feedback) {
-            case SUCCESS -> MessageUtils.sendMessage(sender, "&aUnloading world &e" + world.getName() + "&a...");
-            case WORLD_NOT_FOUND -> MessageUtils.sendMessage(sender, "&cWorld not found");
-            case CANNOT_UNLOAD_OVERWORLD -> MessageUtils.sendMessage(sender, "&cCannot unload the main world");
-            case PLAYERS_ONLINE -> MessageUtils.sendMessage(sender, "&cThere are still players in the world");
-            case UNLOAD_CANCELLED -> MessageUtils.sendMessage(sender, "&cUnload was cancelled by a plugin");
-            default -> MessageUtils.sendMessage(sender, "&cAn error occurred");
-        }
+        plugin.get(WorldInitializer.class).unloadWorld(plugin, world, true).thenAccept(feedback -> {
+            switch (feedback) {
+                case SUCCESS -> MessageUtils.sendMessage(sender, "&aUnloading world &e" + world.getName() + "&a...");
+                case WORLD_NOT_FOUND -> MessageUtils.sendMessage(sender, "&cWorld not found");
+                case CANNOT_UNLOAD_OVERWORLD -> MessageUtils.sendMessage(sender, "&cCannot unload the main world");
+                case PLAYERS_ONLINE -> MessageUtils.sendMessage(sender, "&cThere are still players in the world");
+                case UNLOAD_CANCELLED -> MessageUtils.sendMessage(sender, "&cUnload was cancelled by a plugin");
+                default -> MessageUtils.sendMessage(sender, "&cAn error occurred");
+            }
+        });
     }
 
     @Command(value = "linkportal", description = "Link portals between two worlds")
@@ -180,7 +182,7 @@ public class Commands {
     public void setWorldSpawn(Player player) {
         WorldPosition worldPosition = WorldPosition.fromLocation(player.getLocation());
         plugin.get(WorldSpawnConfig.class).setSpawn(worldPosition);
-        WorldUtil.applyWorldSpawn(worldPosition.toLocation());
+        plugin.get(WorldInitializer.class).applyWorldSpawn(worldPosition.toLocation());
         MessageUtils.sendMessage(player, "&aWorld spawn location set");
     }
 }

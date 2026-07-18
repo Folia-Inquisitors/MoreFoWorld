@@ -1,4 +1,4 @@
-package me.hsgamer.morefoworld;
+package me.hsgamer.morefoworld.initializer;
 
 import ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel;
 import ca.spottedleaf.moonrise.patches.chunk_system.scheduling.ChunkHolderManager;
@@ -30,7 +30,6 @@ import net.minecraft.world.level.levelgen.*;
 import net.minecraft.world.level.levelgen.flat.FlatLevelGeneratorSettings;
 import net.minecraft.world.level.storage.*;
 import org.bukkit.Bukkit;
-import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.craftbukkit.CraftServer;
@@ -49,11 +48,12 @@ import java.lang.invoke.VarHandle;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public final class WorldUtil {
+public final class FoliaWorldInitializer implements WorldInitializer {
     private static final VarHandle RS_INSTANCE;
     private static final VarHandle RS_WORLDS;
     private static final VarHandle CW_WORLDS;
@@ -78,7 +78,8 @@ public final class WorldUtil {
      * @see CraftServer#createWorld(WorldCreator) Folia stubs this with "not implemented properly yet".
      * This method bypasses the stub by calling NMS internals directly.
      */
-    public static FeedbackWorld addWorld(WorldCreator creator) {
+    @Override
+    public FeedbackWorld addWorld(WorldCreator creator) {
         String name = creator.name();
         if (Bukkit.getWorld(name) != null || Bukkit.getWorld(creator.key()) != null) {
             return Feedback.WORLD_ALREADY_EXISTS.toFeedbackWorld();
@@ -100,7 +101,7 @@ public final class WorldUtil {
      * @see net.minecraft.server.MinecraftServer#createLevel(LevelStem, io.papermc.paper.world.PaperWorldLoader.WorldLoadingInfoAndData, LevelDataAndDimensions.WorldDataAndGenSettings)
      * @see DedicatedServer#initServer()
      */
-    private static World addWorld0(WorldCreator creator) {
+    private World addWorld0(WorldCreator creator) {
         CraftServer craftServer = (CraftServer) Bukkit.getServer();
         DedicatedServer console = craftServer.getServer();
 
@@ -237,10 +238,6 @@ public final class WorldUtil {
         return serverLevel.getWorld();
     }
 
-    public static void applyWorldSpawn(Location location) {
-        location.getWorld().setSpawnLocation(location);
-    }
-
     /**
      * Schedule the world to be unloaded asynchronously.
      * <p>
@@ -254,8 +251,7 @@ public final class WorldUtil {
      * @param plugin the plugin initiating the unload
      * @param world  the world to unload
      * @param save   whether to save chunks before removing
-     * @return {@link Feedback#SUCCESS} if the unload was scheduled,
-     * or an error feedback if pre-checks failed
+     * @return a future that completes when the unload finishes
      * @see CraftServer#unloadWorld(World, boolean) Folia stubs this with "not implemented properly yet".
      * This method bypasses the stub.
      * @see io.papermc.paper.threadedregions.RegionShutdownThread The only existing world cleanup in Folia.
@@ -264,37 +260,38 @@ public final class WorldUtil {
      * @see ChunkHolderManager#getChunkHolders() Stage 0 snapshots loaded chunks from this.
      * @see NewChunkHolder#save(boolean) Stage 1 saves each holder on its owning region thread.
      */
-    public static Feedback removeWorld(Plugin plugin, World world, boolean save) {
+    @Override
+    public CompletableFuture<Feedback> unloadWorld(Plugin plugin, World world, boolean save) {
         CraftServer craftServer = (CraftServer) Bukkit.getServer();
         DedicatedServer console = craftServer.getServer();
         CraftWorld craftWorld = (CraftWorld) world;
         ServerLevel level = craftWorld.getHandle();
 
         if (Bukkit.getWorld(world.getName()) == null) {
-            return Feedback.WORLD_NOT_FOUND;
+            return CompletableFuture.completedFuture(Feedback.WORLD_NOT_FOUND);
         }
         if (level.dimension() == Level.OVERWORLD) {
-            return Feedback.CANNOT_UNLOAD_OVERWORLD;
+            return CompletableFuture.completedFuture(Feedback.CANNOT_UNLOAD_OVERWORLD);
         }
         if (!level.players().isEmpty()) {
-            return Feedback.PLAYERS_ONLINE;
+            return CompletableFuture.completedFuture(Feedback.PLAYERS_ONLINE);
         }
         WorldUnloadEvent event = new WorldUnloadEvent(world);
         if (!event.callEvent()) {
-            return Feedback.UNLOAD_CANCELLED;
+            return CompletableFuture.completedFuture(Feedback.UNLOAD_CANCELLED);
         }
 
         ChunkHolderManager holderManager = ((ChunkSystemServerLevel) level).moonrise$getChunkTaskScheduler().chunkHolderManager;
 
+        CompletableFuture<Feedback> future = new CompletableFuture<>();
+
         BatchRunnable batch = new BatchRunnable();
 
-        // Stage 0: snapshot holders
         batch.getTaskPool(0).addLast(process -> {
             process.getData().put("holders", holderManager.getChunkHolders());
             process.next();
         });
 
-        // Stage 1: save each chunk on its owning region thread
         batch.getTaskPool(1).addLast(process -> {
             List<NewChunkHolder> holders = process.getData().get("holders");
             if (holders.isEmpty()) {
@@ -311,7 +308,6 @@ public final class WorldUtil {
                             h.save(false);
                         }
                     } catch (Exception ignored) {
-                        // chunk may have been unloaded concurrently
                     } finally {
                         if (remaining.decrementAndGet() == 0) {
                             process.next();
@@ -321,8 +317,6 @@ public final class WorldUtil {
             }
         });
 
-        // Stage 2: final cleanup on the global tick thread
-        // Must use halt=true to wait for in-flight I/O before closing caches
         batch.getTaskPool(2).addLast(process -> {
             Bukkit.getGlobalRegionScheduler().run(plugin, _ -> {
                 try {
@@ -331,8 +325,10 @@ public final class WorldUtil {
                     removeFromRegionizedWorlds(level);
                     removeFromCraftWorlds(craftServer, world);
                     holderManager.close(save, true);
+                    future.complete(Feedback.SUCCESS);
                 } catch (Exception e) {
                     plugin.getLogger().log(java.util.logging.Level.SEVERE, "Error during world unload cleanup for " + world.getName(), e);
+                    future.completeExceptionally(e);
                 } finally {
                     process.next();
                 }
@@ -345,12 +341,11 @@ public final class WorldUtil {
             batch.run();
             if (batch.isTimeout()) {
                 plugin.getLogger().warning("World unload for " + world.getName() + " timed out after 60s");
-            } else {
-                plugin.getLogger().info("World " + world.getName() + " unloaded");
+                future.completeExceptionally(new RuntimeException("World unload timed out"));
             }
         });
 
-        return Feedback.SUCCESS;
+        return future;
     }
 
     /**
@@ -360,7 +355,7 @@ public final class WorldUtil {
      *
      * @see RegionizedServer#addWorld(ServerLevel)
      */
-    private static void removeFromRegionizedWorlds(ServerLevel level) {
+    private void removeFromRegionizedWorlds(ServerLevel level) {
         RegionizedServer rs = (RegionizedServer) RS_INSTANCE.get();
         @SuppressWarnings("unchecked")
         CopyOnWriteArrayList<ServerLevel> worlds = (CopyOnWriteArrayList<ServerLevel>) RS_WORLDS.get(rs);
@@ -373,37 +368,9 @@ public final class WorldUtil {
      *
      * @see CraftServer#addWorld(org.bukkit.World)
      */
-    private static void removeFromCraftWorlds(CraftServer craftServer, World world) {
+    private void removeFromCraftWorlds(CraftServer craftServer, World world) {
         @SuppressWarnings("unchecked")
         Map<String, World> worlds = (Map<String, World>) CW_WORLDS.get(craftServer);
         worlds.remove(world.getName().toLowerCase(Locale.ROOT));
-    }
-
-    public enum Feedback {
-        WORLD_ALREADY_EXISTS,
-        ERROR,
-        SUCCESS,
-        WORLD_NOT_FOUND,
-        CANNOT_UNLOAD_OVERWORLD,
-        PLAYERS_ONLINE,
-        UNLOAD_CANCELLED;
-
-        public FeedbackWorld toFeedbackWorld(World world) {
-            return new FeedbackWorld(world, this, null);
-        }
-
-        public FeedbackWorld toFeedbackWorld() {
-            return new FeedbackWorld(this, null);
-        }
-
-        public FeedbackWorld toFeedbackWorld(Throwable throwable) {
-            return new FeedbackWorld(this, throwable);
-        }
-    }
-
-    public record FeedbackWorld(World world, Feedback feedback, Throwable throwable) {
-        public FeedbackWorld(Feedback feedback, Throwable throwable) {
-            this(null, feedback, throwable);
-        }
     }
 }
