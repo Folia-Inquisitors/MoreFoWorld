@@ -36,6 +36,16 @@ public class RespawnListener implements ListenerComponent {
         Player player = event.getEntity();
         Location location = player.getLocation();
         debug.debug("Death: " + player.getName() + " at " + location);
+
+        // Let Minecraft handle valid player-specific respawn points, such as beds
+        // and respawn anchors, instead of teleporting the player to a configured
+        // MoreFoWorld spawn after they respawn.
+        Location playerRespawnLocation = player.getRespawnLocation();
+        if (playerRespawnLocation != null) {
+            debug.debug("Using player respawn location: " + playerRespawnLocation);
+            return;
+        }
+
         World world = location.getWorld();
 
         Location respawnLocation;
