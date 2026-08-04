@@ -34,6 +34,11 @@ public class RespawnListener implements ListenerComponent {
     @EventHandler
     public void onDeath(PlayerDeathEvent event) {
         Player player = event.getEntity();
+        if (player.getRespawnLocation() != null) {
+            debug.debug("Player has respawn location. Ignored!");
+            return;
+        }
+
         Location location = player.getLocation();
         debug.debug("Death: " + player.getName() + " at " + location);
         World world = location.getWorld();
