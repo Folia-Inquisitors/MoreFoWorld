@@ -29,3 +29,5 @@ This plugin doesn't claim to be a full-fledged world manager like others such as
 | `/mfw unlinkrespawn <world>`                          | `morefoworld.linkrespawn`     | Un-link Respawn points of a `world`                |
 | `/mfw setspawn`                                       | `morefoworld.setspawn`        | Set the spawn point when a player joins the server |
 | `/mfw setworldspawn`                                  | `morefoworld.setworldspawn`   | Set the spawn point of the current world           |
+| `/mfw load <world>`                                   | `morefoworld.load`            | Load a world                                       |
+| `/mfw unload <world>`                                 | `morefoworld.load`            | Unload a world                                     |

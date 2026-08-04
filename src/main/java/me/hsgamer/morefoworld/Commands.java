@@ -13,7 +13,6 @@ import me.hsgamer.morefoworld.config.SpawnConfig;
 import me.hsgamer.morefoworld.config.WorldSpawnConfig;
 import me.hsgamer.morefoworld.config.object.WorldPosition;
 import me.hsgamer.morefoworld.initializer.WorldInitializer;
-import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.command.CommandException;
@@ -101,7 +100,7 @@ public class Commands {
     }
 
     @Command(value = "unload", description = "Unload a world")
-    @Permission("morefoworld.unload")
+    @Permission("morefoworld.load")
     public void unloadWorld(CommandSender sender, World world) {
         plugin.get(WorldInitializer.class).unloadWorld(plugin, world, true).thenAccept(feedback -> {
             switch (feedback) {
