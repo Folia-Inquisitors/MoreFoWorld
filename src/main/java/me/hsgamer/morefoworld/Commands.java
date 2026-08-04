@@ -103,11 +103,6 @@ public class Commands {
     @Command(value = "unload", description = "Unload a world")
     @Permission("morefoworld.unload")
     public void unloadWorld(CommandSender sender, World world) {
-        if (world.equals(Bukkit.getWorlds().get(0))) {
-            MessageUtils.sendMessage(sender, "&cCannot unload the main world");
-            return;
-        }
-
         plugin.get(WorldInitializer.class).unloadWorld(plugin, world, true).thenAccept(feedback -> {
             switch (feedback) {
                 case SUCCESS -> MessageUtils.sendMessage(sender, "&aUnloading world &e" + world.getName() + "&a...");
