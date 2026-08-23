@@ -8,8 +8,8 @@ plugins {
 }
 
 group = 'me.hsgamer'
-version = '1.16.0'
-def snapshot = false
+version = '1.16.1'
+def snapshot = true
 description = 'A preference world manager for Folia'
 
 if (snapshot) {
