@@ -6,6 +6,7 @@ import ca.spottedleaf.moonrise.patches.chunk_system.scheduling.NewChunkHolder;
 import com.google.common.collect.ImmutableList;
 import com.mojang.serialization.JsonOps;
 import io.papermc.paper.threadedregions.RegionizedServer;
+import io.papermc.paper.threadedregions.TickRegionScheduler;
 import io.papermc.paper.threadedregions.scheduler.GlobalRegionScheduler;
 import io.papermc.paper.world.PaperWorldLoader;
 import io.papermc.paper.world.migration.WorldFolderMigration;
@@ -13,6 +14,7 @@ import me.hsgamer.hscore.task.BatchRunnable;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.dedicated.DedicatedServer;
 import net.minecraft.server.dedicated.DedicatedServerProperties;
 import net.minecraft.server.level.ServerLevel;
@@ -41,6 +43,7 @@ import org.bukkit.generator.BiomeProvider;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.generator.WorldInfo;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
@@ -72,24 +75,39 @@ public final class FoliaWorldInitializer implements WorldInitializer {
 
     /**
      * Add a world to the server.
+     * <p>
+     * {@link MinecraftServer#initWorld(ServerLevel, WorldCreator)} spawn-finds the initial spawn point, which
+     * requires being on the level's own region thread or on the global region thread (where there is no current
+     * region). When called from a region thread of another world (e.g. a player command), the initialization is
+     * deferred onto the global region thread so that Folia's world thread check does not fail.
      *
      * @param creator the world creator
-     * @return the feedback
+     * @return the feedback, completed once the world is fully loaded (or the error has been captured)
      * @see CraftServer#createWorld(WorldCreator) Folia stubs this with "not implemented properly yet".
      * This method bypasses the stub by calling NMS internals directly.
      */
     @Override
-    public FeedbackWorld addWorld(WorldCreator creator) {
+    public CompletableFuture<FeedbackWorld> addWorld(WorldCreator creator) {
         String name = creator.name();
         if (Bukkit.getWorld(name) != null || Bukkit.getWorld(creator.key()) != null) {
-            return Feedback.WORLD_ALREADY_EXISTS.toFeedbackWorld();
+            return CompletableFuture.completedFuture(Feedback.WORLD_ALREADY_EXISTS.toFeedbackWorld());
         }
-        try {
-            World world = addWorld0(creator);
-            return Feedback.SUCCESS.toFeedbackWorld(world);
-        } catch (Throwable throwable) {
-            return Feedback.ERROR.toFeedbackWorld(throwable);
+        CompletableFuture<FeedbackWorld> future = new CompletableFuture<>();
+        Runnable addWorldRunnable = () -> {
+            try {
+                World world = addWorld0(creator);
+                future.complete(Feedback.SUCCESS.toFeedbackWorld(world));
+            } catch (Throwable throwable) {
+                future.complete(Feedback.ERROR.toFeedbackWorld(throwable));
+            }
+        };
+
+        if (TickRegionScheduler.getCurrentRegion() == null) {
+            addWorldRunnable.run();
+        } else {
+            Bukkit.getGlobalRegionScheduler().execute(JavaPlugin.getProvidingPlugin(FoliaWorldInitializer.class), addWorldRunnable);
         }
+        return future;
     }
 
     /**

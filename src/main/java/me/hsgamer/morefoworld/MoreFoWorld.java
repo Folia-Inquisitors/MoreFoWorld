@@ -50,7 +50,7 @@ public final class MoreFoWorld extends BasePlugin {
         WorldInitializer initializer = get(WorldInitializer.class);
         for (WorldSetting worldSetting : get(MainConfig.class).getWorldSettings()) {
             WorldCreator worldCreator = worldSetting.toWorldCreator();
-            WorldInitializer.FeedbackWorld feedbackWorld = initializer.addWorld(worldCreator);
+            WorldInitializer.FeedbackWorld feedbackWorld = initializer.addWorld(worldCreator).join();
             if (feedbackWorld.feedback() == WorldInitializer.Feedback.SUCCESS) {
                 getLogger().info("World " + worldSetting.getName() + " is added");
             } else {

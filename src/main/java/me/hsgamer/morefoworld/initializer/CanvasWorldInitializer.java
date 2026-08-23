@@ -18,19 +18,19 @@ public final class CanvasWorldInitializer implements WorldInitializer {
     }
 
     @Override
-    public FeedbackWorld addWorld(WorldCreator creator) {
+    public CompletableFuture<FeedbackWorld> addWorld(WorldCreator creator) {
         String name = creator.name();
         if (Bukkit.getWorld(name) != null || Bukkit.getWorld(creator.key()) != null) {
-            return Feedback.WORLD_ALREADY_EXISTS.toFeedbackWorld();
+            return CompletableFuture.completedFuture(Feedback.WORLD_ALREADY_EXISTS.toFeedbackWorld());
         }
         try {
             World world = Bukkit.createWorld(creator);
             if (world != null) {
-                return Feedback.SUCCESS.toFeedbackWorld(world);
+                return CompletableFuture.completedFuture(Feedback.SUCCESS.toFeedbackWorld(world));
             }
-            return Feedback.ERROR.toFeedbackWorld(new RuntimeException("World creation returned null"));
+            return CompletableFuture.completedFuture(Feedback.ERROR.toFeedbackWorld(new RuntimeException("World creation returned null")));
         } catch (Throwable throwable) {
-            return Feedback.ERROR.toFeedbackWorld(throwable);
+            return CompletableFuture.completedFuture(Feedback.ERROR.toFeedbackWorld(throwable));
         }
     }
 

@@ -8,7 +8,7 @@ import org.bukkit.plugin.Plugin;
 import java.util.concurrent.CompletableFuture;
 
 public interface WorldInitializer {
-    FeedbackWorld addWorld(WorldCreator creator);
+    CompletableFuture<FeedbackWorld> addWorld(WorldCreator creator);
 
     CompletableFuture<Feedback> unloadWorld(Plugin plugin, World world, boolean save);
 
