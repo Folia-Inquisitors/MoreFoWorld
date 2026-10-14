@@ -101,7 +101,8 @@ public class PortalListener implements ListenerComponent {
         event.setCancelled(true);
 
         Location location = event.getBlock().getLocation();
-        if (!new EntityPortalEnterEvent(event.getEntity(), location, nether ? PortalType.NETHER : PortalType.ENDER).callEvent()) return;
+        if (!new EntityPortalEnterEvent(event.getEntity(), location, nether ? PortalType.NETHER : PortalType.ENDER).callEvent())
+            return;
 
         entity.setAsInsidePortal(portals.computeIfAbsent(nether, LinkedPortal::new), ((CraftBlock) event.getBlock()).getPosition());
     }
@@ -161,7 +162,7 @@ public class PortalListener implements ListenerComponent {
         public boolean portalAsync(ServerLevel sourceLevel, Entity entity, BlockPos portalPos) {
             ServerLevel destination = targetLevel(sourceLevel);
             if (destination == null) return false;
-            debug.debug("Portal " + (nether ? "nether" : "end") + ": " + entity.getUUID() + " (" + sourceLevel.getWorld().getName() + " -> " + destination.getWorld().getName() + ")");
+            debug.debug("Portal " + (nether ? "nether" : "end") + ": " + entity.getUUID() + " (" + sourceLevel.getWorld().getName() + " -> " + destination.getWorld().getName() + ") at " + portalPos);
 
             if (destination == defaultDestination(sourceLevel)) {
                 debug.debug("Default destination, using the portal logic of the server");
