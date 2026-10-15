@@ -17,7 +17,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.PortalProcessor;
 import net.minecraft.world.entity.Relative;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.NetherPortalBlock;
 import net.minecraft.world.level.block.Portal;
 import net.minecraft.world.level.block.state.BlockState;
@@ -36,6 +36,7 @@ import org.bukkit.PortalType;
 import org.bukkit.World;
 import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.craftbukkit.block.CraftBlock;
+import org.bukkit.craftbukkit.block.data.CraftBlockData;
 import org.bukkit.craftbukkit.entity.CraftEntity;
 import org.bukkit.craftbukkit.util.CraftLocation;
 import org.bukkit.event.EventHandler;
@@ -55,6 +56,9 @@ import java.util.concurrent.ConcurrentHashMap;
  * {@link PortalProcessor#processPortalTeleportation}. The teleport of a linked {@link LinkedPortal} is
  * requested through {@link Portal#portalAsync}, the same hook the server uses for its own portals
  * ({@link NetherPortalBlock#portalAsync} and {@link net.minecraft.world.level.block.EndPortalBlock#portalAsync}).
+ * <p>
+ * A portal is identified by its {@link Material}, so a portal of a future version is picked up by
+ * {@link #vanillaPortals} and left to the server until the plugin knows a link for it.
  */
 public class PortalListener implements ListenerComponent {
     /**
@@ -63,7 +67,14 @@ public class PortalListener implements ListenerComponent {
      */
     private static final int SEARCH_CHUNK_MARGIN = 32;
 
-    private final ConcurrentHashMap<Boolean, LinkedPortal> portals = new ConcurrentHashMap<>();
+    /**
+     * The portal of the server for a {@link Material}, empty if the block is not a portal.
+     */
+    private final ConcurrentHashMap<Material, Optional<Portal>> vanillaPortals = new ConcurrentHashMap<>();
+    /**
+     * The portal of a link for a {@link Material}.
+     */
+    private final ConcurrentHashMap<Material, LinkedPortal> portals = new ConcurrentHashMap<>();
     private final BasePlugin plugin;
     private DebugComponent debug;
 
@@ -82,50 +93,88 @@ public class PortalListener implements ListenerComponent {
     }
 
     /**
+     * The portal of the block, {@link net.minecraft.world.level.block.Blocks#NETHER_PORTAL} and
+     * {@link net.minecraft.world.level.block.Blocks#END_PORTAL} are the portals of the server.
+     *
+     * @param material the material of the block
+     * @return the portal, or empty if the block is not a portal
+     */
+    private static Optional<Portal> vanillaPortal(Material material) {
+        if (!material.isBlock()) return Optional.empty();
+        Block block = ((CraftBlockData) material.createBlockData()).getState().getBlock();
+        return block instanceof Portal portal ? Optional.of(portal) : Optional.empty();
+    }
+
+    /**
      * Replaces the portal process of {@link NetherPortalBlock#entityInside} and
      * {@link net.minecraft.world.level.block.EndPortalBlock#entityInside} with a portal that knows the linked
      * world, the server then does the rest: {@link Entity#canUsePortal} decides whether the entity can portal,
      * {@link EntityPortalEnterEvent} is the event of the server and {@link Entity#setAsInsidePortal} starts the
-     * portal process.
+     * portal process. Without a link the portal of the server is left alone.
      */
     @EventHandler(ignoreCancelled = true)
     public void onEntityInsidePortal(EntityInsideBlockEvent event) {
         Material material = event.getBlock().getType();
-        boolean nether = material == Material.NETHER_PORTAL;
-        if (!nether && material != Material.END_PORTAL) return;
+        Portal vanilla = vanillaPortals.computeIfAbsent(material, PortalListener::vanillaPortal).orElse(null);
+        if (vanilla == null) return;
 
         Entity entity = ((CraftEntity) event.getEntity()).getHandle();
         if (!entity.canUsePortal(false)) return;
+        if (targetLevel((ServerLevel) entity.level(), material) == null) return;
 
         // the portal of the server only knows the default dimensions, the linked portal takes over
         event.setCancelled(true);
 
         Location location = event.getBlock().getLocation();
-        if (!new EntityPortalEnterEvent(event.getEntity(), location, nether ? PortalType.NETHER : PortalType.ENDER).callEvent())
-            return;
+        if (!new EntityPortalEnterEvent(event.getEntity(), location, portalType(material)).callEvent()) return;
 
-        entity.setAsInsidePortal(portals.computeIfAbsent(nether, LinkedPortal::new), ((CraftBlock) event.getBlock()).getPosition());
+        entity.setAsInsidePortal(portals.computeIfAbsent(material, key -> new LinkedPortal(key, vanilla)), ((CraftBlock) event.getBlock()).getPosition());
+    }
+
+    /**
+     * The linked world of the portal type in {@link PortalConfig}.
+     *
+     * @param sourceLevel the level of the portal
+     * @param material    the material of the portal block
+     * @return the linked level, or {@code null} if the world is not linked
+     */
+    private ServerLevel targetLevel(ServerLevel sourceLevel, Material material) {
+        World sourceWorld = sourceLevel.getWorld();
+        PortalConfig portalConfig = plugin.get(PortalConfig.class);
+        Optional<World> targetWorld = switch (material) {
+            case NETHER_PORTAL -> portalConfig.getWorldFromNetherPortal(sourceWorld);
+            case END_PORTAL -> portalConfig.getWorldFromEndPortal(sourceWorld);
+            default -> Optional.empty();
+        };
+        return targetWorld.map(world -> ((CraftWorld) world).getHandle()).orElse(null);
+    }
+
+    /**
+     * The {@link PortalType} of the portal block for {@link EntityPortalEnterEvent}.
+     *
+     * @param material the material of the portal block
+     * @return the portal type
+     */
+    private static PortalType portalType(Material material) {
+        return switch (material) {
+            case NETHER_PORTAL -> PortalType.NETHER;
+            case END_PORTAL -> PortalType.ENDER;
+            default -> PortalType.CUSTOM;
+        };
     }
 
     /**
      * The portal of a link. Everything except the destination is done by the server:
-     * {@link Portal#getPortalTransitionTime} and {@link Portal#getLocalTransition} come from the vanilla block
+     * {@link Portal#getPortalTransitionTime} and {@link Portal#getLocalTransition} come from the vanilla portal
      * and {@link Portal#portalAsync} only has to build the transition.
      */
     private final class LinkedPortal implements Portal {
-        private final boolean nether;
+        private final Material material;
+        private final Portal vanilla;
 
-        private LinkedPortal(boolean nether) {
-            this.nether = nether;
-        }
-
-        /**
-         * The vanilla block of this portal, {@link Blocks#NETHER_PORTAL} or {@link Blocks#END_PORTAL}.
-         *
-         * @return the vanilla block as a portal
-         */
-        private Portal vanilla() {
-            return (Portal) (nether ? Blocks.NETHER_PORTAL : Blocks.END_PORTAL);
+        private LinkedPortal(Material material, Portal vanilla) {
+            this.material = material;
+            this.vanilla = vanilla;
         }
 
         /**
@@ -133,7 +182,7 @@ public class PortalListener implements ListenerComponent {
          */
         @Override
         public int getPortalTransitionTime(ServerLevel level, Entity entity) {
-            return vanilla().getPortalTransitionTime(level, entity);
+            return vanilla.getPortalTransitionTime(level, entity);
         }
 
         /**
@@ -141,7 +190,7 @@ public class PortalListener implements ListenerComponent {
          */
         @Override
         public Portal.Transition getLocalTransition() {
-            return vanilla().getLocalTransition();
+            return vanilla.getLocalTransition();
         }
 
         @Override
@@ -160,23 +209,23 @@ public class PortalListener implements ListenerComponent {
          */
         @Override
         public boolean portalAsync(ServerLevel sourceLevel, Entity entity, BlockPos portalPos) {
-            ServerLevel destination = targetLevel(sourceLevel);
+            ServerLevel destination = targetLevel(sourceLevel, material);
             if (destination == null) return false;
-            debug.debug("Portal " + (nether ? "nether" : "end") + ": " + entity.getUUID() + " (" + sourceLevel.getWorld().getName() + " -> " + destination.getWorld().getName() + ") at " + portalPos);
+            debug.debug("Portal " + material + ": " + entity.getUUID() + " (" + sourceLevel.getWorld().getName() + " -> " + destination.getWorld().getName() + ") at " + portalPos);
 
             if (destination == defaultDestination(sourceLevel)) {
                 debug.debug("Default destination, using the portal logic of the server");
-                return nether ? entity.netherPortalLogicAsync(portalPos) : entity.endPortalLogicAsync(portalPos);
+                return switch (material) {
+                    case NETHER_PORTAL -> entity.netherPortalLogicAsync(portalPos);
+                    case END_PORTAL -> entity.endPortalLogicAsync(portalPos);
+                    default -> false;
+                };
             }
-            return nether ? teleportNether(sourceLevel, destination, entity, portalPos) : teleportEnd(sourceLevel, destination, entity);
-        }
-
-        private ServerLevel targetLevel(ServerLevel sourceLevel) {
-            World sourceWorld = sourceLevel.getWorld();
-            Optional<World> targetWorld = nether
-                    ? plugin.get(PortalConfig.class).getWorldFromNetherPortal(sourceWorld)
-                    : plugin.get(PortalConfig.class).getWorldFromEndPortal(sourceWorld);
-            return targetWorld.map(world -> ((CraftWorld) world).getHandle()).orElse(null);
+            return switch (material) {
+                case NETHER_PORTAL -> teleportNether(sourceLevel, destination, entity, portalPos);
+                case END_PORTAL -> teleportEnd(sourceLevel, destination, entity);
+                default -> false;
+            };
         }
 
         /**
@@ -187,11 +236,12 @@ public class PortalListener implements ListenerComponent {
          * @return the level of {@link Level#OVERWORLD}, {@link Level#NETHER} or {@link Level#END}
          */
         private ServerLevel defaultDestination(ServerLevel sourceLevel) {
-            boolean fromEnd = sourceLevel.getTypeKey() == LevelStem.END;
-            ResourceKey<Level> targetKey = nether
-                    ? (sourceLevel.getTypeKey() == LevelStem.NETHER ? Level.OVERWORLD : Level.NETHER)
-                    : (fromEnd ? Level.OVERWORLD : Level.END);
-            return sourceLevel.getServer().getLevel(targetKey);
+            ResourceKey<Level> targetKey = switch (material) {
+                case NETHER_PORTAL -> sourceLevel.getTypeKey() == LevelStem.NETHER ? Level.OVERWORLD : Level.NETHER;
+                case END_PORTAL -> sourceLevel.getTypeKey() == LevelStem.END ? Level.OVERWORLD : Level.END;
+                default -> null;
+            };
+            return targetKey == null ? null : sourceLevel.getServer().getLevel(targetKey);
         }
 
         /**
