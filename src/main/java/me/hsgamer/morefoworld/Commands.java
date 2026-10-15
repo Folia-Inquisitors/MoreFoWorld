@@ -90,7 +90,8 @@ public class Commands {
         plugin.get(WorldInitializer.class).addWorld(creator).thenAccept(result -> {
             switch (result.feedback()) {
                 case SUCCESS -> MessageUtils.sendMessage(sender, "&aWorld &e" + name + " &ahas been loaded");
-                case WORLD_ALREADY_EXISTS -> MessageUtils.sendMessage(sender, "&cWorld &e" + name + " &calready exists");
+                case WORLD_ALREADY_EXISTS ->
+                        MessageUtils.sendMessage(sender, "&cWorld &e" + name + " &calready exists");
                 case ERROR -> {
                     MessageUtils.sendMessage(sender, "&cFailed to load world &e" + name + "&c: " + (result.throwable() != null ? result.throwable().getMessage() : "Unknown error"));
                     plugin.getLogger().log(Level.WARNING, "Failed to load world " + name, result.throwable());

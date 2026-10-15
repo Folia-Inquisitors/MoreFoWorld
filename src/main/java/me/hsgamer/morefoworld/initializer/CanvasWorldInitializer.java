@@ -29,6 +29,24 @@ public final class CanvasWorldInitializer implements WorldInitializer {
         }
     }
 
+    /**
+     * Maps {@code io.canvasmc.canvas.WorldUnloadResult} to {@link Feedback} by its name.
+     *
+     * @param result the result of the unload
+     * @return the feedback of the result
+     */
+    private static Feedback unloadFeedback(Object result) {
+        String name = result instanceof Enum<?> unloadResult ? unloadResult.name() : "";
+        return switch (name) {
+            case "SUCCESS" -> Feedback.SUCCESS;
+            case "FAIL_PLAYERS_JOINING", "FAIL_PLAYERS_PRESENT" -> Feedback.PLAYERS_ONLINE;
+            case "FAIL_ALREADY_UNLOADING" -> Feedback.WORLD_NOT_FOUND;
+            case "FAIL_IS_OVERWORLD" -> Feedback.CANNOT_UNLOAD_OVERWORLD;
+            case "FAIL_UNLOAD_EVENT" -> Feedback.UNLOAD_CANCELLED;
+            default -> Feedback.ERROR;
+        };
+    }
+
     @Override
     public CompletableFuture<FeedbackWorld> addWorld(WorldCreator creator) {
         String name = creator.name();
@@ -62,23 +80,5 @@ public final class CanvasWorldInitializer implements WorldInitializer {
             future.completeExceptionally(exception);
         }
         return future;
-    }
-
-    /**
-     * Maps {@code io.canvasmc.canvas.WorldUnloadResult} to {@link Feedback} by its name.
-     *
-     * @param result the result of the unload
-     * @return the feedback of the result
-     */
-    private static Feedback unloadFeedback(Object result) {
-        String name = result instanceof Enum<?> unloadResult ? unloadResult.name() : "";
-        return switch (name) {
-            case "SUCCESS" -> Feedback.SUCCESS;
-            case "FAIL_PLAYERS_JOINING", "FAIL_PLAYERS_PRESENT" -> Feedback.PLAYERS_ONLINE;
-            case "FAIL_ALREADY_UNLOADING" -> Feedback.WORLD_NOT_FOUND;
-            case "FAIL_IS_OVERWORLD" -> Feedback.CANNOT_UNLOAD_OVERWORLD;
-            case "FAIL_UNLOAD_EVENT" -> Feedback.UNLOAD_CANCELLED;
-            default -> Feedback.ERROR;
-        };
     }
 }

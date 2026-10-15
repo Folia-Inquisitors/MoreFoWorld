@@ -82,16 +82,6 @@ public class PortalListener implements ListenerComponent {
         this.plugin = plugin;
     }
 
-    @Override
-    public BasePlugin getPlugin() {
-        return plugin;
-    }
-
-    @Override
-    public void load() {
-        debug = plugin.get(DebugComponent.class);
-    }
-
     /**
      * The portal of the block, {@link net.minecraft.world.level.block.Blocks#NETHER_PORTAL} and
      * {@link net.minecraft.world.level.block.Blocks#END_PORTAL} are the portals of the server.
@@ -103,6 +93,30 @@ public class PortalListener implements ListenerComponent {
         if (!material.isBlock()) return Optional.empty();
         Block block = ((CraftBlockData) material.createBlockData()).getState().getBlock();
         return block instanceof Portal portal ? Optional.of(portal) : Optional.empty();
+    }
+
+    /**
+     * The {@link PortalType} of the portal block for {@link EntityPortalEnterEvent}.
+     *
+     * @param material the material of the portal block
+     * @return the portal type
+     */
+    private static PortalType portalType(Material material) {
+        return switch (material) {
+            case NETHER_PORTAL -> PortalType.NETHER;
+            case END_PORTAL -> PortalType.ENDER;
+            default -> PortalType.CUSTOM;
+        };
+    }
+
+    @Override
+    public BasePlugin getPlugin() {
+        return plugin;
+    }
+
+    @Override
+    public void load() {
+        debug = plugin.get(DebugComponent.class);
     }
 
     /**
@@ -147,20 +161,6 @@ public class PortalListener implements ListenerComponent {
             default -> Optional.empty();
         };
         return targetWorld.map(world -> ((CraftWorld) world).getHandle()).orElse(null);
-    }
-
-    /**
-     * The {@link PortalType} of the portal block for {@link EntityPortalEnterEvent}.
-     *
-     * @param material the material of the portal block
-     * @return the portal type
-     */
-    private static PortalType portalType(Material material) {
-        return switch (material) {
-            case NETHER_PORTAL -> PortalType.NETHER;
-            case END_PORTAL -> PortalType.ENDER;
-            default -> PortalType.CUSTOM;
-        };
     }
 
     /**
